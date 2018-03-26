@@ -13,3 +13,8 @@ func TestLog(t *testing.T){
 		lloger.Error("hello world")
 	}
 }
+
+
+func TestWechatNotify(t *testing.T){
+	util.WechatNotify("fuck the dog")
+}
