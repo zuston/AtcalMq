@@ -5,8 +5,6 @@ import (
 	"net/http"
 	"io/ioutil"
 	url2 "net/url"
-	"strconv"
-	"strings"
 )
 
 const(
@@ -20,35 +18,48 @@ const(
 
 var queueChan = make(chan string,100)
 
+var taskQueue = make(chan func(),1000)
 func WechatNotify(notify string) bool{
 
-	queueKey := fmt.Sprintf("%s:%s",strconv.Itoa(WECHAT_CHANNEL),notify)
-	queueChan <- queueKey
+	//queueKey := fmt.Sprintf("%s:%s",strconv.Itoa(WECHAT_CHANNEL),notify)
+	//queueChan <- queueKey
+
+	taskQueue <- func() {
+		sendWechat(notify)
+	}
 	return true
 }
 
 
 func MailNotify(notify string) bool {
-	queueKey := fmt.Sprintf("%s:%s",strconv.Itoa(EMAIL_CHANNEL),notify)
-	queueChan <- queueKey
+	//queueKey := fmt.Sprintf("%s:%s",strconv.Itoa(EMAIL_CHANNEL),notify)
+	//queueChan <- queueKey
+
+	taskQueue <- func() {
+		sendMail(notify)
+	}
 	return true
 }
 
 func HandlerQueue() {
-	for key := range queueChan {
-		if index := strings.LastIndex(key,":"); index!=-1 {
-			tag := key[0:index]
-			notify := key[index:len(key)]
-			v,_ :=strconv.Atoi(tag);
-			if v == WECHAT_CHANNEL {
-				sendWechat(notify)
-				continue
-			}
+	//for key := range queueChan {
+	//	if index := strings.LastIndex(key,":"); index!=-1 {
+	//		tag := key[0:index]
+	//		notify := key[index:len(key)]
+	//		v,_ :=strconv.Atoi(tag);
+	//		if v == WECHAT_CHANNEL {
+	//			sendWechat(notify)
+	//			continue
+	//		}
+	//
+	//		if v==EMAIL_CHANNEL {
+	//			sendMail(notify)
+	//		}
+	//	}
+	//}
 
-			if v==EMAIL_CHANNEL {
-				sendMail(notify)
-			}
-		}
+	for sendFunc := range taskQueue {
+		sendFunc()
 	}
 }
 
