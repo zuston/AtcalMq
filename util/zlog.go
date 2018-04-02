@@ -62,13 +62,17 @@ func (logger *Logger) Write(buf []byte) (n int, err error) {
 		return  len(buf), nil
 	}
 
-	logger.handlerFile()
+	if logger.fileHandle==nil {
+		logger.handlerFile()
+	}
 
+	// repeat verify
 	if logger.fileHandle==nil {
 		return len(buf),nil
 	}
+
 	if logger.debug {
-		fmt.Println(string(buf))
+		fmt.Print(string(buf))
 	}
 	return logger.fileHandle.Write(buf)
 }
@@ -79,11 +83,8 @@ func (logger *Logger) SetLevel(level int){
 
 func (logger *Logger)Debug(format string, args ...interface{}){
 	if logger.level <= DEBUG_LEVEL {
-		logger.nlogger.SetPrefix("Debug ")
+		logger.nlogger.SetPrefix("[Debug] ")
 		outLine := fmt.Sprintf(format, args...)
-		if logger.debug {
-			fmt.Println(outLine)
-		}
 		logger.nlogger.Output(2,outLine )
 	}
 }
@@ -91,21 +92,21 @@ func (logger *Logger)Debug(format string, args ...interface{}){
 
 func (logger *Logger)Info(format string, args ...interface{}){
 	if logger.level <= INFO_LEVEL {
-		logger.nlogger.SetPrefix("Info ")
+		logger.nlogger.SetPrefix("[Info ] ")
 		logger.nlogger.Output(2, fmt.Sprintf(format, args...))
 	}
 }
 
 func (logger *Logger)Warn(format string, args ...interface{}){
 	if logger.level <= WARN_LEVEL {
-		logger.nlogger.SetPrefix("Warn ")
+		logger.nlogger.SetPrefix("[Warn ] ")
 		logger.nlogger.Output(2, fmt.Sprintf(format, args...))
 	}
 }
 
 func (logger *Logger)Error(format string, args ...interface{}){
 	if logger.level <= ERROR_LEVEL {
-		logger.nlogger.SetPrefix("Error ")
+		logger.nlogger.SetPrefix("[Error] ")
 		logger.nlogger.Output(2, fmt.Sprintf(format, args...))
 	}
 }
