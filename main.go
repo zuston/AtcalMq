@@ -212,6 +212,10 @@ func main(){
 
 	// send the msg to producer rabbitmq
 	cp, err := NewProducerFactory(mq_uri,exchange,exchange_type,false)
+	// put the msg to channel
 	cp.publish("","")
 	go cp.handle()
+
+	// main process blocking
+	select {}
 }
