@@ -7,6 +7,7 @@ import (
 	"io"
 )
 
+// read the config file , convert to the Map[string]string
 func ConfigReader(path string) (map[string]string, error){
 	mapper := make(map[string]string,4)
 	ffile, err := os.Open(path)

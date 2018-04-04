@@ -4,6 +4,7 @@ import (
 	"github.com/streadway/amqp"
 	"fmt"
 	"github.com/zuston/AtcalMq/util"
+	"github.com/zuston/AtcalMq/core"
 )
 
 var (
@@ -19,8 +20,9 @@ const (
 )
 
 const (
-	QUEUE_1 = "ane_its_ai_data_centerLoad_queue"
+	QUEUE_CENTERLOAD = "ane_its_ai_data_centerLoad_queue"
 )
+
 
 type Consumer map[string]interface{}
 
@@ -59,7 +61,8 @@ func NewConsumerFactory(url string, exchange string, exchangeType string) (*Cons
 }
 
 func (cf *ConsumerFactory) register(queueName string, f func(msgChan <-chan amqp.Delivery)) error {
-	lloger.Info("%s register to factory",queueName)
+	// set the special queue color
+	lloger.Info("%c[1;40;32m%s%c[0m register to factory",0x1B,queueName,0x1B)
 	tempMap := make(Consumer,1)
 	tempMap[queueName] = f
 	cf.registerChan <- tempMap
@@ -192,23 +195,17 @@ func init(){
 
 
 func main(){
+	// show the queue msg info, through the ConsoleQueueChan
+	// todo: ...
+
 	cf, err := NewConsumerFactory(mq_uri,exchange,exchange_type)
 
 	if err!=nil {
 		panic("fail to connect to the message queue of rabbitmq")
 	}
 
-	cf.register(QUEUE_1, func(msgChan <-chan amqp.Delivery) {
-		i := 1
-		for msg := range msgChan{
-			if i==2 {
-				return
-			}
-			fmt.Println("accept the info : ",i)
-			i++
-			msg.Ack(false)
-		}
-	})
+	// centerload queue
+	cf.register(QUEUE_CENTERLOAD, core.CenterLoadHandler)
 
 	cf.handle()
 }

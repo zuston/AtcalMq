@@ -114,7 +114,7 @@ func (logger *Logger)Error(format string, args ...interface{}){
 func (logger *Logger) handlerFile() {
 	ctime := time.Now()
 	//设置的文件后缀，按照时间来拆分
-	filenamePrefix := fmt.Sprintf("_%02d_%d_%2d",ctime.Year(),ctime.Month(),ctime.Day())
+	filenamePrefix := fmt.Sprintf("_%02d_%d_%d",ctime.Year(),ctime.Month(),ctime.Day())
 
 	os.MkdirAll(logger.fileFolder,os.ModePerm)
 
