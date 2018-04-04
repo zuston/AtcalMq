@@ -1,45 +1,40 @@
 package main
 
 import (
-	"net/rpc"
-	"net/http"
-	"log"
-	"net"
-	"time"
+	"encoding/json"
+	"fmt"
 )
 
+type Server struct {
+	ServerName string
+	ServerIP   string
+}
 
+type Serverslice struct {
+	Servers []Server
+}
 
-type Arith int
+type CenterLoad struct{
+	DataType int
+	EwbNo string
+	Weight float32
+}
 
-func (t *Arith) Multiply(args int, reply *([]string)) error {
-	*reply = append(*reply, "test")
-	return nil
+type ClList struct{
+
 }
 
 func main() {
-	arith := new(Arith)
-
-	rpc.Register(arith)
-	rpc.HandleHTTP()
-
-	l, e := net.Listen("tcp", ":1234")
-	if e != nil {
-		log.Fatal("listen error:", e)
-	}
-	http.Serve(l, nil)
-	time.Sleep(5 * time.Second)
-
-	client, err := rpc.DialHTTP("tcp", "127.0.0.1" + ":1234")
-	if err != nil {
-		log.Fatal("dialing:", err)
-	}
+	var s Serverslice
+	str := `{"servers":[{"serverName":"Shanghai_VPN","serverIP":"127.0.0.1"},{"serverName":"Beijing_VPN","serverIP":"127.0.0.2"}]}`
+	json.Unmarshal([]byte(str), &s)
+	fmt.Println(s)
 
 
-	reply := make([]string, 10)
-	err = client.Call("Arith.Multiply", 1, &reply)
-	if err != nil {
-		log.Fatal("arith error:", err)
-	}
-	log.Println(reply)
+	strring := `[{"dataType":2,"ewbNo":"300156177594","weight":27.5}]`
+
+	var cl []CenterLoad
+
+	json.Unmarshal([]byte(strring), &cl)
+	fmt.Println(cl[0])
 }

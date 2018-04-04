@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"github.com/zuston/AtcalMq/util"
+	"log"
 )
 
 /**
@@ -18,11 +19,22 @@ exposed to rpc
 
 var consumerContainer map[string]string
 
-func Supervisor(queue *amqp.Queue){
+func Supervisor(channel *amqp.Channel, queueName string){
 	consumerContainer = make(map[string]string,100)
 	for {
+		queue, err := channel.QueueDeclare(
+			queueName,
+			true,
+			false,
+			false,
+			false,
+			nil,
+		)
+		if err!=nil {
+			log.Printf("%s",err)
+		}
+		fmt.Println(queue.Messages)
 		consumerContainer[queue.Name] = strconv.Itoa(queue.Messages)
-		fmt.Println(consumerContainer["ane_its_ai_data_centerLoad_queue"])
 		time.Sleep(10*time.Second)
 	}
 }
@@ -47,6 +59,6 @@ func NewWatcher(){
 		zlloger.Error("listen to the port error : %s",err)
 		return
 	}
-	zlloger.Info("RPC listen to port : 9898")
+	zlloger.Info("Console RPC listen to port : 9898")
 	http.Serve(lhandler,nil)
 }

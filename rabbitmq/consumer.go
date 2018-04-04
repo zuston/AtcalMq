@@ -3,7 +3,6 @@ package rabbitmq
 import (
 	"github.com/streadway/amqp"
 	"fmt"
-	"github.com/zuston/AtcalMq/core"
 	"github.com/zuston/AtcalMq/util"
 )
 
@@ -162,7 +161,9 @@ func (cf *ConsumerFactory) Handle() {
 
 			//log.Println(queue.Name,queue.Consumers,queue.Messages)
 			// provider info to supervisor
-			go core.Supervisor(&queue)
+			// remove it because of get the data from api, like
+			// http://58.215.167.31:15672/api/queues/its-test/ane_its_ai_data_centerLoad_queue
+			//go core.Supervisor(channel,queueName)
 
 			go handleFunc.(func(msgChan <-chan amqp.Delivery))(deliveries)
 		}

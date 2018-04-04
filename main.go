@@ -64,12 +64,15 @@ func main(){
 	// provide the rpc service, expose the port 9898
 	core.NewWatcher()
 
+	// main process blocking
+	select {}
+}
+
+// producer demo
+func initProducer(){
 	// send the msg to producer rabbitmq
-	pf, err := rabbitmq.NewProducerFactory(mq_uri,exchange,exchange_type,false)
+	pf, _ := rabbitmq.NewProducerFactory(mq_uri,exchange,exchange_type,false)
 	// put the msg to channel
 	pf.Publish("","")
 	go pf.Handle()
-
-	// main process blocking
-	select {}
 }
