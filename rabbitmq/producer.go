@@ -1,4 +1,4 @@
-package main
+package rabbitmq
 
 import (
 	"github.com/zuston/AtcalMq/util"
@@ -116,10 +116,10 @@ func (cp *ProducerFactory) register(queueName string) bool{
 	//}
 	//
 	//
-	//return false
+	return false
 }
 
-func (cp *ProducerFactory) publish(queueName string, msg string){
+func (cp *ProducerFactory) Publish(queueName string, msg string){
 	entity := MsgEntity{
 		queueName:queueName,
 		msg:msg,
@@ -128,7 +128,7 @@ func (cp *ProducerFactory) publish(queueName string, msg string){
 }
 
 
-func (cp *ProducerFactory) handle(){
+func (cp *ProducerFactory) Handle(){
 	cp.zlogger.Info("ready to publish the rabbitmq...")
 	for msgEntity := range cp.msgChan{
 		queueName := msgEntity.queueName
