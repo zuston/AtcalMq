@@ -7,6 +7,7 @@ import (
 	"github.com/zuston/AtcalMq/core"
 )
 
+// declare the variable
 var (
 	mq_uri = ""
 	exchange = ""
@@ -71,12 +72,12 @@ func (cf *ConsumerFactory) register(queueName string, f func(msgChan <-chan amqp
 
 // close all the queue
 func (cf *ConsumerFactory) closeAll(){
-
+	// todo
 }
 
 // close the declared Consumer
 func (cf *ConsumerFactory) close(queueName string){
-
+	// todo
 }
 
 
@@ -207,5 +208,10 @@ func main(){
 	// centerload queue
 	cf.register(QUEUE_CENTERLOAD, core.CenterLoadHandler)
 
-	cf.handle()
+	go cf.handle()
+
+	// send the msg to producer rabbitmq
+	cp, err := NewProducerFactory(mq_uri,exchange,exchange_type,false)
+	cp.publish("","")
+	go cp.handle()
 }
