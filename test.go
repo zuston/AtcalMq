@@ -3,6 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/tsuna/gohbase/hrpc"
+	"context"
+	"github.com/zuston/AtcalMq/core"
 )
 
 type Server struct {
@@ -25,6 +28,15 @@ type ClList struct{
 }
 
 func main() {
+
+	values := map[string]map[string][]byte{"base": map[string][]byte{"ScanMan": []byte{0}}}
+	putRequest, _ := hrpc.NewPutStr(context.Background(), "centerload","1", values)
+	_, err := core.Hconn.Client.Put(putRequest)
+	if err!=nil{
+		fmt.Println(err)
+	}
+	return
+
 	var s Serverslice
 	str := `{"servers":[{"serverName":"Shanghai_VPN","serverIP":"127.0.0.1"},{"serverName":"Beijing_VPN","serverIP":"127.0.0.2"}]}`
 	json.Unmarshal([]byte(str), &s)
@@ -36,5 +48,5 @@ func main() {
 	var cl []CenterLoad
 
 	json.Unmarshal([]byte(strring), &cl)
-	fmt.Println(cl[0])
+	fmt.Println(cl[0].DataType)
 }

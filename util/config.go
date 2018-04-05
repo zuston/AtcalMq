@@ -19,6 +19,9 @@ func ConfigReader(path string) (map[string]string, error){
 		line, err := buffer.ReadString('\n')
 		line = strings.TrimSpace(line)
 		tagIndex := strings.Index(line,"=")
+		if tagIndex==-1 {
+			return nil,err
+		}
 		key := strings.TrimSpace(line[:tagIndex])
 		value := strings.TrimSpace(line[tagIndex+1:])
 		mapper[key] = value

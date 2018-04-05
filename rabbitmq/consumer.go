@@ -162,7 +162,7 @@ func (cf *ConsumerFactory) Handle() {
 			//log.Println(queue.Name,queue.Consumers,queue.Messages)
 			// provider info to supervisor
 			// remove it because of get the data from api, like
-			// http://58.215.167.31:15672/api/queues/its-test/ane_its_ai_data_centerLoad_queue
+			// curl -i -u sitrab:sitrab123456 http://58.215.167.31:15672/api/queues/its-test/ane_its_ai_data_centerLoad_queue
 			//go core.Supervisor(channel,queueName)
 
 			go handleFunc.(func(msgChan <-chan amqp.Delivery))(deliveries)

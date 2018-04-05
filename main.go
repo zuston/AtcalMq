@@ -24,8 +24,6 @@ const (
 )
 
 
-
-
 var lloger *util.Logger
 
 func init(){
@@ -36,7 +34,10 @@ func init(){
 
 	// set the mq config by reading the mq config file
 	lloger.Info("ready to read the mq config")
-	configMapper,_ := util.ConfigReader("./mq.cfg")
+	configMapper,err := util.ConfigReader("./mq.cfg")
+	if err!=nil {
+		configMapper, _ = util.ConfigReader("/opt/mq.cfg")
+	}
 
 	mq_uri = configMapper[URL]
 	exchange = configMapper[EXCHANGE]
