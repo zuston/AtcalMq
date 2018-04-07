@@ -6,6 +6,10 @@ import (
 	"github.com/tsuna/gohbase/hrpc"
 	"context"
 	"github.com/zuston/AtcalMq/core"
+	"os"
+	"bufio"
+	"strings"
+	"io"
 )
 
 type Server struct {
@@ -27,11 +31,43 @@ type ClList struct{
 
 }
 
+
+
 func main() {
+	go core.NewWatcher()
+	select {
+	}
+
+	mapper := make(map[string]string,4)
+	ffile, err := os.Open("/opt/mq.cfg")
+
+	buffer := bufio.NewReader(ffile)
+	for {
+		line, err := buffer.ReadString('\n')
+		if err!= nil {
+			if err==io.EOF {
+				fmt.Println("结束")
+				return
+			}
+			return
+		}
+		line = strings.TrimSpace(line)
+		fmt.Println(line,"*")
+		tagIndex := strings.Index(line,"=")
+		if tagIndex==-1 {
+			fmt.Println("error, tagIndex=",tagIndex)
+			return
+		}
+		key := strings.TrimSpace(line[:tagIndex])
+		value := strings.TrimSpace(line[tagIndex+1:])
+		mapper[key] = value
+
+	}
+	return
 
 	values := map[string]map[string][]byte{"base": map[string][]byte{"ScanMan": []byte{0}}}
 	putRequest, _ := hrpc.NewPutStr(context.Background(), "centerload","1", values)
-	_, err := core.Hconn.Client.Put(putRequest)
+	_, err = core.Hconn.Client.Put(putRequest)
 	if err!=nil{
 		fmt.Println(err)
 	}

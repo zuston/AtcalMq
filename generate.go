@@ -72,6 +72,25 @@ func main(){
 
 	fmt.Println("}")
 
+
+	fmt.Println(fmt.Sprintf("%c[1;40;32mGENERATE HBASE MAPPER AS FOLLOWING%c[0m",0x1B,0x1B))
+
+	// generate the mapper hbase code
+	mapperFirstLine := "map[string][]byte{"
+	mapperEndLine := "}"
+
+
+
+	fmt.Println(mapperFirstLine)
+	for k,v := range objectMapper{
+		if v=="float32" {
+			fmt.Println(fmt.Sprintf(`"%s":[]byte(fmt.sprintf("\\\%s",v.%s)),`,k,k))
+		}
+		fmt.Println(fmt.Sprintf(`"%s":[]byte(v.%s),`,k,k))
+	}
+
+	fmt.Println(mapperEndLine)
+
  }
 
 

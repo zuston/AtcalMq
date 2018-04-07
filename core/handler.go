@@ -2,11 +2,12 @@ package core
 
 import (
 	"github.com/streadway/amqp"
-	"log"
 	"encoding/json"
 	"github.com/tsuna/gohbase"
 	"github.com/tsuna/gohbase/hrpc"
 	"context"
+	"github.com/zuston/AtcalMq/util"
+	"fmt"
 )
 
 // singleton
@@ -16,9 +17,14 @@ type HbaseConn struct{
 
 var Hconn *HbaseConn
 
+var hlogger *util.Logger
+
 func init(){
 	Hconn = &HbaseConn{}
 	Hconn.Client = gohbase.NewClient("slave4,slave2,slave3")
+
+	hlogger, _ = util.NewLogger(util.DEBUG_LEVEL,"/tmp/handler.log")
+	hlogger.SetDebug()
 }
 
 type CenterLoadObj struct {
@@ -48,25 +54,45 @@ func CenterLoadHandler(msgChan <-chan amqp.Delivery){
 	var clList []CenterLoadObj
 	for msg := range msgChan{
 		if i==10 {return}
-		log.Printf("accept the info : %d",i)
-		log.Printf("got %dB deliveries, [%v]", len(msg.Body),msg.DeliveryTag)
+		hlogger.Debug("accept the info : %d",i)
 
 		json.Unmarshal([]byte(string(msg.Body)), &clList)
-
+		zlloger.Debug("handler queueName : [%s], unmarshal the json len : %d","centerLoad",len(clList))
 		/**
 		todo
 		need to maintain the threadPool
 		 */
 		for _,v := range clList{
-			values := map[string]map[string][]byte{"base": map[string][]byte{"ScanMan": []byte(v.ScanMan)}}
-			putRequest, err := hrpc.NewPutStr(context.Background(), "centerload", v.EwbsListNo, values)
+
+			// generated code by generate.go file
+			columnsMapper := map[string][]byte{
+				"PlatformCode":[]byte(v.PlatformCode),
+				"ScanType":[]byte(fmt.Sprintf("%d",v.ScanType)),
+				"EwbNo":[]byte(v.EwbNo),
+				"HewbNo":[]byte(v.HewbNo),
+				"NextSiteCode":[]byte(v.NextSiteCode),
+				"Weight":[]byte(fmt.Sprintf("%d",v.Weight)),
+				"DataType":[]byte(fmt.Sprintf("%d",v.DataType)),
+				"OperatorCode":[]byte(v.OperatorCode),
+				"SiteCode":[]byte(v.SiteCode),
+				"ScanTime":[]byte(v.ScanTime),
+				"Volume":[]byte(fmt.Sprintf("%.4f",v.Volume)),
+				"SiteId":[]byte(fmt.Sprintf("%d",v.SiteId)),
+				"EwbsListNo":[]byte(v.EwbsListNo),
+				"NextSiteId":[]byte(fmt.Sprintf("%d",v.NextSiteId)),
+				"ScanMan":[]byte(v.ScanMan),
+			}
+
+
+			values := map[string]map[string][]byte{"base": columnsMapper}
+			putRequest, err := hrpc.NewPutStr(context.Background(), "centerload", v.EwbNo, values)
 			if err!=nil {
-				log.Printf("hbase put error : %s",err)
+				hlogger.Error("hbase put error : %s",err)
 				continue
 			}
 			_, err = Hconn.Client.Put(putRequest)
 			if err!=nil {
-				log.Printf("hbase finally put error : %s",err)
+				hlogger.Error("hbase finally put error : %s",err)
 				continue
 			}
 		}

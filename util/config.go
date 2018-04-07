@@ -17,6 +17,12 @@ func ConfigReader(path string) (map[string]string, error){
 	buffer := bufio.NewReader(ffile)
 	for {
 		line, err := buffer.ReadString('\n')
+		if err!= nil {
+			if err==io.EOF {
+				return mapper, nil
+			}
+			return nil, err
+		}
 		line = strings.TrimSpace(line)
 		tagIndex := strings.Index(line,"=")
 		if tagIndex==-1 {
@@ -25,11 +31,6 @@ func ConfigReader(path string) (map[string]string, error){
 		key := strings.TrimSpace(line[:tagIndex])
 		value := strings.TrimSpace(line[tagIndex+1:])
 		mapper[key] = value
-		if err!= nil {
-			if err==io.EOF {
-				return mapper, nil
-			}
-			return nil, err
-		}
+
 	}
 }

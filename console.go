@@ -15,6 +15,7 @@ const (
 var zllogger *util.Logger
 func init(){
 	zllogger, _ = util.NewLogger(util.DEBUG_LEVEL,"/tmp/console.log")
+	zllogger.SetDebug()
 }
 
 
@@ -30,12 +31,12 @@ func main() {
 	var reply string
 
 	for{
-		err = client.Call("Watcher.GetInfo",QUEUE_1, &reply)
+		err = client.Call("Watcher.GetOverStock",QUEUE_1, &reply)
 		if err!=nil {
 			zllogger.Error("call function error : ",err)
 			continue
 		}
-		zllogger.Info("call function success, result : ",reply)
+		zllogger.Info("queueName : %s, overstock number : %s",QUEUE_1,reply)
 		time.Sleep(10*time.Second)
 	}
 	return
