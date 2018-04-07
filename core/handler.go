@@ -57,7 +57,7 @@ func CenterLoadHandler(msgChan <-chan amqp.Delivery){
 		hlogger.Debug("accept the info : %d",i)
 
 		json.Unmarshal([]byte(string(msg.Body)), &clList)
-		zlloger.Debug("handler queueName : [%s], unmarshal the json len : %d","centerLoad",len(clList))
+		hlogger.Debug("handler queueName : [%s], unmarshal the json len : %d","centerLoad",len(clList))
 		/**
 		todo
 		need to maintain the threadPool
