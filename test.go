@@ -36,8 +36,8 @@ type ClList struct{
 func main() {
 	go core.NewWatcher()
 	select {
-	}
 
+	}
 	mapper := make(map[string]string,4)
 	ffile, err := os.Open("/opt/mq.cfg")
 

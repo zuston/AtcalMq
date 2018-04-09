@@ -4,6 +4,7 @@ import (
 	"github.com/streadway/amqp"
 	"fmt"
 	"github.com/zuston/AtcalMq/util"
+	"github.com/zuston/AtcalMq/core"
 )
 
 const (
@@ -53,6 +54,8 @@ func NewConsumerFactory(url string, exchange string, exchangeType string) (*Cons
 }
 
 func (cf *ConsumerFactory) Register(queueName string, f func(msgChan <-chan amqp.Delivery)) error {
+	// add the register queueName to Supervisor component
+	core.AddSupervisorQueue(queueName)
 	// set the special queue color
 	cf.zloger.Info("%c[1;40;32m%s%c[0m register to factory",0x1B,queueName,0x1B)
 	tempMap := make(Consumer,1)
@@ -142,11 +145,18 @@ func (cf *ConsumerFactory) Handle() {
 			// channel bind success
 			cf.zloger.Debug("bind the declared queue success")
 
+			// 设置预读机制，防止处理过慢，导致connection reset
+			err = channel.Qos(
+				10,
+				0,
+				false,
+			)
+
 			// start the consume
 			cf.zloger.Debug("%s ready to consume the queue",queueName)
 			deliveries, err := channel.Consume(
 				queue.Name,
-				queue.Name,
+				fmt.Sprintf("counsumer-%s",queueName),
 				false,
 				false,
 				false,
@@ -161,7 +171,7 @@ func (cf *ConsumerFactory) Handle() {
 
 			//log.Println(queue.Name,queue.Consumers,queue.Messages)
 			// provider info to supervisor
-			// remove it because of get the data from api, like
+			// remove it because of getting the data from api, like
 			// curl -i -u sitrab:sitrab123456 http://58.215.167.31:15672/api/queues/its-test/ane_its_ai_data_centerLoad_queue
 			//go core.Supervisor(channel,queueName)
 
