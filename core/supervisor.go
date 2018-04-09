@@ -78,17 +78,6 @@ func AddSupervisorQueue(queueName string){
 
 func Supervisor(){
 
-	// 单位时间处理能力
-	go func(){
-		time.Sleep(time.Second*2)
-		for _,v := range queueNameContainer {
-			zlloger.Info("reset the unit handler map [%s]",v)
-			queueUnitHandlerMapper[v] = 0
-			// todo, 最好做一个事件循环队列
-		}
-		time.Sleep(60*time.Second)
-	}()
-
 	// 获取当前队列积压数据量
 	// 循环获取
 	for {
@@ -96,23 +85,23 @@ func Supervisor(){
 			queuename := v
 			jsonResp,err := rabbitCliApi(queuename)
 			if err!=nil {
-				zlloger.Error("supervisor timely got [%s] error : [%s]",queuename,err)
+				errorFormat := fmt.Sprintf("supervisor timely got [%s] error : [%s]",queuename,err)
+				zlloger.Error(errorFormat)
+				util.WechatNotify(errorFormat)
 				continue
 			}
 			countV := gjson.Get(jsonResp,"messages")
+			originalCount := queueNameCountMapper[queuename]
 			queueNameCountMapper[queuename] = countV.String()
+
+			// 设置unitHandlerAbility
+			originalCountInt, _ := strconv.Atoi(originalCount)
+			countVInt, _ := strconv.Atoi(countV.String())
+			queueUnitHandlerMapper[queuename] = originalCountInt-countVInt
+
 		}
 		time.Sleep(60*time.Second)
 	}
-}
-
-// Unit time processing capacity 单位时间处理能力监控,叠加数据
-func HandlerAbility(queueName string){
-	if _,ok := queueUnitHandlerMapper[queueName];!ok{
-		queueUnitHandlerMapper[queueName] = 1
-		return
-	}
-	queueUnitHandlerMapper[queueName]++
 }
 
 /**
@@ -151,6 +140,8 @@ func (w *Watcher) GetAll(tag string, result *string) error{
 }
 
 func NewWatcher(){
+	// wechat handler queue
+	go util.NotifyHandlerQueue()
 	// 循环刷新数据
 	go Supervisor()
 	// rpc 暴露接口

@@ -17,3 +17,19 @@ type CenterLoadObj struct {
 	ScanMan string
 	HewbNo string
 }
+
+
+type CenterUnLoadObj struct {
+	Weight int
+	EwbNo string
+	EwbsListNo string
+	PrevSiteCode string
+	ScanMan string
+	ScanTime string
+	ScanType int
+	Volume int
+	HewbNo string
+	OperatorCode string
+	PrevSiteId int
+	SiteCode string
+}

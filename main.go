@@ -34,7 +34,7 @@ const (
 
 	QUEUE_DATA_CENTERUNLOAD = "ane_its_ai_data_centerUnload_queue"
 
-	QUEUE_DATA_CENTERPALLET = "ane_its_ai_data_center Pallet_queue"
+	QUEUE_DATA_CENTERPALLET = "ane_its_ai_data_centerPallet_queue"
 
 	QUEUE_DATA_CENTERSORT = "ane_its_ai_data_centerSort_queue"
 
@@ -95,6 +95,9 @@ func main(){
 	// 2.5.5 centerload queue
 	cf.Register(QUEUE_DATA_CENTERLOAD, core.CenterLoadHandler)
 
+	// 2.5.2
+	cf.Register(QUEUE_DATA_CENTERUNLOAD, core.DataCenterUnloadHandler)
+
 
 	// BIZ ORDER 2.1
 	cf.Register(QUEUE_BIZ_ORDER, core.BizOrderHandler)
@@ -111,8 +114,6 @@ func main(){
 	// DATA SITELOAD 2.5.1
 	cf.Register(QUEUE_DATA_SITELOAD, core.DataSiteLoadHandler)
 
-	// 2.5.2
-	cf.Register(QUEUE_DATA_CENTERUNLOAD, core.DataCenterUnloadHandler)
 
 	// 2.5.3
 	cf.Register(QUEUE_DATA_CENTERPALLET, core.DataCenterPalletHandler)
@@ -150,7 +151,6 @@ func main(){
 
 	//2.11
 	cf.Register(QUEUE_BASIC_VEHICLELINE, core.BasicVehicleLineHandler)
-
 
 	go cf.Handle()
 	// provide the rpc service, expose the port 9898

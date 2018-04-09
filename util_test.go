@@ -24,7 +24,7 @@ func TestLog(t *testing.T) {
 
 func TestWechatNotify(t *testing.T) {
 	//channel := make(chan int, 10)
-	go util.HandlerQueue()
+	go util.NotifyHandlerQueue()
 	util.WechatNotify("waht the world is!")
 	//<-channel
 }

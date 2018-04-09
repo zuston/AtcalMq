@@ -11,6 +11,10 @@ const (
 	CONSUMER_LOGGER_PATH = "/tmp/aneConsumer.log"
 )
 
+const (
+	CONSUMER_TAG_PREFIX = "CONSUMER-"
+)
+
 type Consumer map[string]interface{}
 
 type ConsumerChan <-chan amqp.Delivery
@@ -19,6 +23,7 @@ type ConsumerChan <-chan amqp.Delivery
 type ConsumerFactory struct {
 	// zlog
 	zloger *util.Logger
+	// 总的一个链接 connection,（已废弃）
 	conn *amqp.Connection
 	// 注册消费队列
 	registerChan chan Consumer
@@ -26,6 +31,18 @@ type ConsumerFactory struct {
 	done chan error
 	exchange string
 	exchangeType string
+	amqpUrl string
+	// 监视器，防止处理队列挂掉，重新再连接
+	restartChan chan string
+	// registerMapper
+	registerMapper map[string]func(msgChan <-chan amqp.Delivery, c chan string)
+	// register rabbitmq connection and channel struct mapper
+	registerConnMapper map[string]*RabbitConn
+}
+
+type RabbitConn struct {
+	conn *amqp.Connection
+	channel *amqp.Channel
 }
 
 func NewConsumerFactory(url string, exchange string, exchangeType string) (*ConsumerFactory,error){
@@ -39,6 +56,10 @@ func NewConsumerFactory(url string, exchange string, exchangeType string) (*Cons
 		done:make(chan error,1000),
 		exchange:exchange,
 		exchangeType:exchangeType,
+		amqpUrl:url,
+		restartChan:make(chan string,20),
+		registerMapper:make(map[string]func(msgChan <-chan amqp.Delivery, c chan string),10),
+		registerConnMapper:make(map[string]*RabbitConn,10),
 	}
 	// start the dial
 	zlogger.Debug("ready to dial, dail url : %s",url)
@@ -53,7 +74,7 @@ func NewConsumerFactory(url string, exchange string, exchangeType string) (*Cons
 	return cf, nil
 }
 
-func (cf *ConsumerFactory) Register(queueName string, f func(msgChan <-chan amqp.Delivery)) error {
+func (cf *ConsumerFactory) Register(queueName string, f func(msgChan <-chan amqp.Delivery, c chan string)) error {
 	// add the register queueName to Supervisor component
 	core.AddSupervisorQueue(queueName)
 	// set the special queue color
@@ -61,6 +82,7 @@ func (cf *ConsumerFactory) Register(queueName string, f func(msgChan <-chan amqp
 	tempMap := make(Consumer,1)
 	tempMap[queueName] = f
 	cf.registerChan <- tempMap
+	cf.registerMapper[queueName] = f
 	return nil
 }
 
@@ -76,18 +98,39 @@ func (cf *ConsumerFactory) Close(queueName string){
 
 
 func (cf *ConsumerFactory) Handle() {
-	// 1. handle register queue consumer
-	// 2. do the consume msg of consumer's action
+
+	// 监听异步执行的任务,挂掉则重启
+	go func(){
+		for stopQueueName := range cf.restartChan{
+			cf.registerConnMapper[stopQueueName].channel.Cancel(setConsumerTag(stopQueueName),false)
+			cf.registerConnMapper[stopQueueName].conn.Close()
+			f := cf.registerMapper[stopQueueName]
+			tempMap := make(Consumer, 1)
+			tempMap[stopQueueName] = f
+			// 重启任务
+			cf.zloger.Info("[%s] restart listening the channel",stopQueueName)
+			util.WechatNotify(fmt.Sprintf("%s-restart listening the channel",stopQueueName))
+			cf.registerChan <- tempMap
+		}
+	}()
+
+	// 1. 处理注册queue
+	// 2. 异步consume数据
 	for consumer := range cf.registerChan {
 		for k,v := range consumer {
-			//fmt.Println(k)
-			//v.(func(msg string))("sd")
 			queueName := k
 			handleFunc := v
 
+			cf.zloger.Debug("ready to dial...")
+			amqpConn, err := amqp.Dial(cf.amqpUrl)
+			if err!=nil {
+				cf.zloger.Error("dial amqp Connection error : %s",err)
+				continue
+			}
+
 			// start the acheive the channel
 			cf.zloger.Debug("ready to acheive the channel")
-			channel, err := cf.conn.Channel()
+			channel, err := amqpConn.Channel()
 			if err!=nil {
 				cf.zloger.Error("!acheive the channel error, queueName : %s, error : %s",queueName, err)
 				continue
@@ -147,7 +190,7 @@ func (cf *ConsumerFactory) Handle() {
 
 			// 设置预读机制，防止处理过慢，导致connection reset
 			err = channel.Qos(
-				10,
+				5,
 				0,
 				false,
 			)
@@ -156,7 +199,7 @@ func (cf *ConsumerFactory) Handle() {
 			cf.zloger.Debug("%s ready to consume the queue",queueName)
 			deliveries, err := channel.Consume(
 				queue.Name,
-				fmt.Sprintf("counsumer-%s",queueName),
+				setConsumerTag(queueName),
 				false,
 				false,
 				false,
@@ -173,9 +216,15 @@ func (cf *ConsumerFactory) Handle() {
 			// provider info to supervisor
 			// remove it because of getting the data from api, like
 			// curl -i -u sitrab:sitrab123456 http://58.215.167.31:15672/api/queues/its-test/ane_its_ai_data_centerLoad_queue
-			//go core.Supervisor(channel,queueName)
-
-			go handleFunc.(func(msgChan <-chan amqp.Delivery))(deliveries)
+			cf.registerConnMapper[queueName] = &RabbitConn{
+				conn:amqpConn,
+				channel:channel,
+			}
+			go handleFunc.(func(msgChan <-chan amqp.Delivery, c chan string))(deliveries, cf.restartChan)
 		}
 	}
+}
+
+func setConsumerTag(queueName string) string{
+	return fmt.Sprintf("%s%s",CONSUMER_TAG_PREFIX,queueName)
 }

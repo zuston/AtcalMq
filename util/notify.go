@@ -41,7 +41,7 @@ func MailNotify(notify string) bool {
 	return true
 }
 
-func HandlerQueue() {
+func NotifyHandlerQueue() {
 	//for key := range queueChan {
 	//	if index := strings.LastIndex(key,":"); index!=-1 {
 	//		tag := key[0:index]

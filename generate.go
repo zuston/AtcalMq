@@ -11,10 +11,10 @@ import (
 generate the code
  */
 
-var strring = `{"dataType":2,"ewbNo":"300179844074","ewbsListNo":"332114393218033103","hewbNo":"30017984407400040003","nextSiteCode":"5122002","nextSiteId":14393,"operatorCode":"002977,043056,00113317","platformCode":"006","scanMan":"002977","scanTime":"2018-04-01 02:03:39","scanType":1,"siteCode":"5103032","siteId":3321,"volume":0.18,"weight":35},`
+var strring = `{"ewbNo":"300175881167","ewbsListNo":"332122415218031803","hewbNo":"30017588116700030001","operatorCode":"00101949","prevSiteCode":"5103032","prevSiteId":3321,"scanMan":"00101949","scanTime":"2018-03-19 15:48:00","scanType":1,"siteCode":"5272002","volume":0,"weight":0},{"ewbNo":"300175881167","ewbsListNo":"332122415218031803","hewbNo":"30017588116700030002","operatorCode":"00101949","prevSiteCode":"5103032","prevSiteId":3321,"scanMan":"00101949","scanTime":"2018-03-19 15:48:01","scanType":1,"siteCode":"5272002","volume":0,"weight":0},{"ewbNo":"300170299405","ewbsListNo":"88772448218031801","hewbNo":"30017029940500010001","operatorCode":"067286,00096276,00100210","prevSiteCode":"8982002","prevSiteId":8877,"scanMan":"067286","scanTime":"2018-03-19 15:48:00","scanType":1,"siteCode":"0202000","siteId":2448,"volume":0,"weight":0}]`
 
 
-var objectName = "CenterLoadObj"
+var objectName = "CenterUnLoadObj"
 
 
 //var strring string

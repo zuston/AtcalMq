@@ -18,7 +18,6 @@ var (
 	client *rpc.Client
 
 	currentInfos string
-	historyInfos []string
 )
 
 
@@ -37,14 +36,6 @@ func init(){
 
 func dataCover(){
 	var jsonReply string
-
-	//maintainHistory := func(size int, data string) {
-	//	if len(historyInfos)<size {
-	//		historyInfos = append(historyInfos,data)
-	//		return
-	//	}
-	//
-	//}
 
 	for{
 		err := client.Call("Watcher.GetAll","", &jsonReply)
@@ -94,7 +85,7 @@ func main() {
 
 	bc := termui.NewBarChart()
 	bclabels := []string{"S0", "S1", "S2", "S3", "S4", "S5"}
-	bc.BorderLabel = "Queue Status"
+	bc.BorderLabel = "Queue Status (PRESS q TO QUIT)"
 	bc.Width = 120
 	bc.Height = 30
 	bc.DataLabels = bclabels
@@ -104,6 +95,21 @@ func main() {
 
 	bc.BarWidth = 5
 	termui.Render(bc)
+
+
+	ha := termui.NewBarChart()
+	ha.BorderLabel = "Queue Unit Time Handle Ability"
+	ha.Width = 120
+	ha.Height = 15
+	ha.DataLabels = []string{"S0"}
+	ha.TextColor = termui.ColorGreen
+	ha.BarColor = termui.ColorRed
+	ha.NumColor = termui.ColorYellow
+	ha.X = 0
+	ha.Y = 31
+	ha.BarWidth = 5
+	termui.Render(ha)
+
 
 	termui.Handle("/sys/kbd/q", func(termui.Event) {
 		termui.StopLoop()
@@ -126,17 +132,23 @@ func main() {
 			}
 			initBarLabelTag = false
 			bc.DataLabels = labels
+			ha.DataLabels = labels
 			ls.Items = listLabels
 		}
-		var updateData []int
+		// overstock array
+		var overstockData []int
+		// unit ablity arr
+		var unitAbilityData []int
 		for _,v := range jv{
 			intv, _ := strconv.Atoi(v.Overstock)
-			updateData = append(updateData,intv)
+			overstockData = append(overstockData,intv)
+			unitAbilityData = append(unitAbilityData,v.UnitHandlerAblitity)
 		}
-		//updateData = append(updateData,5000)
-		bc.Data = updateData
+		bc.Data = overstockData
+		ha.Data = unitAbilityData
 		termui.Render(bc)
 		termui.Render(ls)
+		termui.Render(ha)
 	})
 
 	termui.Loop()

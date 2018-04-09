@@ -6,24 +6,29 @@ import (
 	"github.com/streadway/amqp"
 	"log"
 	"time"
+	"github.com/zuston/AtcalMq/util"
 )
 
 var (
-	uri          = flag.String("uri", "amqp://sitrab:sitrab123456@58.215.167.31:5672/its-test", "AMQP URI")
 	exchange     = flag.String("exchange", "ane_its_exchange", "Durable, non-auto-deleted AMQP exchange name")
 	exchangeType = flag.String("exchange-type", "direct", "Exchange type - direct|fanout|topic|x-custom")
-	queue        = flag.String("queue", "ane_its_ai_data_centerLoad_queue", "Ephemeral AMQP queue name")
-	bindingKey   = flag.String("key", "ane_its_ai_data_centerLoad_queue", "AMQP binding key")
+	queue        = flag.String("queue", "ane_its_ai_data_centerUnload_queue", "Ephemeral AMQP queue name")
+	bindingKey   = flag.String("key", "ane_its_ai_data_centerUnload_queue", "AMQP binding key")
 	consumerTag  = flag.String("consumer-tag", "simple-consumer", "AMQP consumer tag (should not be blank)")
 	lifetime     = flag.Duration("lifetime", 1000*time.Second, "lifetime of process before shutdown (0s=infinite)")
 )
 
+var uri string
+
 func init() {
 	flag.Parse()
+	configMapper,_ := util.ConfigReader("./mq.cfg")
+
+	uri = configMapper["mq_uri"]
 }
 
 func main() {
-	c, err := NewConsumer(*uri, *exchange, *exchangeType, *queue, *bindingKey, *consumerTag)
+	c, err := NewConsumer(uri, *exchange, *exchangeType, *queue, *bindingKey, *consumerTag)
 	if err != nil {
 		log.Fatalf("%s", err)
 	}
@@ -159,13 +164,17 @@ func handle(deliveries <-chan amqp.Delivery, done chan error) {
 	i := 1
 	for d := range deliveries {
 		log.Printf("index : %d",i)
+		if i==2 {
+			return
+		}
 		//log.Printf(
 		//	"got %dB delivery: [%v]",
 		//	len(d.Body),
 		//	d.DeliveryTag,
 		//)
+		fmt.Println(string(d.Body))
 		d.Ack(false)
-		time.Sleep(10*time.Second)
+		//time.Sleep(60*time.Second)
 		i++
 	}
 	log.Printf("handle: deliveries channel closed")
