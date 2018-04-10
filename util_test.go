@@ -30,10 +30,6 @@ func TestWechatNotify(t *testing.T) {
 }
 
 
-func TestHello(t *testing.T){
-	fmt.Println("hello world")
-}
-
 func TestCofigReader(t *testing.T){
 	mapper, _ := util.ConfigReader("./mq.cfg")
 	fmt.Println(mapper)

@@ -5,46 +5,40 @@ import (
 	"fmt"
 	"github.com/streadway/amqp"
 	"log"
-	"time"
 	"github.com/zuston/AtcalMq/util"
 )
 
 var (
 	exchange     = flag.String("exchange", "ane_its_exchange", "Durable, non-auto-deleted AMQP exchange name")
 	exchangeType = flag.String("exchange-type", "direct", "Exchange type - direct|fanout|topic|x-custom")
-	queue        = flag.String("queue", "ane_its_ai_data_centerUnload_queue", "Ephemeral AMQP queue name")
-	bindingKey   = flag.String("key", "ane_its_ai_data_centerUnload_queue", "AMQP binding key")
 	consumerTag  = flag.String("consumer-tag", "simple-consumer", "AMQP consumer tag (should not be blank)")
-	lifetime     = flag.Duration("lifetime", 1000*time.Second, "lifetime of process before shutdown (0s=infinite)")
 )
 
 var uri string
+var queue string
+var bindingKey string
 
 func init() {
 	flag.Parse()
 	configMapper,_ := util.ConfigReader("./mq.cfg")
 
 	uri = configMapper["mq_uri"]
+	queue = "ane_its_ai_biz_order_queue"
+	bindingKey = queue
 }
 
 func main() {
-	c, err := NewConsumer(uri, *exchange, *exchangeType, *queue, *bindingKey, *consumerTag)
+	_, err := NewConsumer(uri, *exchange, *exchangeType, queue, bindingKey, *consumerTag)
 	if err != nil {
 		log.Fatalf("%s", err)
 	}
 
-	if *lifetime > 0 {
-		log.Printf("running for %s", *lifetime)
-		time.Sleep(*lifetime)
-	} else {
-		log.Printf("running forever")
-		select {}
-	}
 
-	log.Printf("shutting down")
+	//if err := c.Shutdown(); err != nil {
+	//	log.Fatalf("error during shutdown: %s", err)
+	//}
+	select {
 
-	if err := c.Shutdown(); err != nil {
-		log.Fatalf("error during shutdown: %s", err)
 	}
 }
 
@@ -71,9 +65,7 @@ func NewConsumer(amqpURI, exchange, exchangeType, queueName, key, ctag string) (
 		return nil, fmt.Errorf("Dial: %s", err)
 	}
 
-	go func() {
-		fmt.Printf("closing: %s", <-c.conn.NotifyClose(make(chan *amqp.Error)))
-	}()
+
 
 	log.Printf("got Connection, getting Channel")
 	c.channel, err = c.conn.Channel()
@@ -120,11 +112,11 @@ func NewConsumer(amqpURI, exchange, exchangeType, queueName, key, ctag string) (
 		return nil, fmt.Errorf("Queue Bind: %s", err)
 	}
 
-	err = c.channel.Qos(
-		10,
-		0,
-		false,
-	)
+	//err = c.channel.Qos(
+	//	10,
+	//	0,
+	//	false,
+	//)
 
 	log.Printf("Queue bound to Exchange, starting Consume (consumer tag %q)", c.tag)
 	deliveries, err := c.channel.Consume(
@@ -141,6 +133,13 @@ func NewConsumer(amqpURI, exchange, exchangeType, queueName, key, ctag string) (
 	}
 
 	go handle(deliveries, c.done)
+
+	go func() {
+		fmt.Printf("conn closing: %s", <-c.conn.NotifyClose(make(chan *amqp.Error)))
+		fmt.Printf("channel closing: %s", <-c.channel.NotifyClose(make(chan *amqp.Error)))
+	}()
+
+
 	return c, nil
 }
 
@@ -160,23 +159,27 @@ func (c *Consumer) Shutdown() error {
 	return <-c.done
 }
 
+func (c *Consumer) Supervisor() {
+	select {
+	case <-c.done:
+		c.channel.Close()
+		c.conn.Close()
+
+	}
+}
+
 func handle(deliveries <-chan amqp.Delivery, done chan error) {
 	i := 1
 	for d := range deliveries {
-		log.Printf("index : %d",i)
 		if i==2 {
-			return
+			break
 		}
-		//log.Printf(
-		//	"got %dB delivery: [%v]",
-		//	len(d.Body),
-		//	d.DeliveryTag,
-		//)
+		log.Printf("index : %d",i)
 		fmt.Println(string(d.Body))
 		d.Ack(false)
-		//time.Sleep(60*time.Second)
+		//time.Sleep(10*time.Second)
 		i++
 	}
-	log.Printf("handle: deliveries channel closed")
+	log.Printf("handle: deliveries auto closed")
 	done <- nil
 }

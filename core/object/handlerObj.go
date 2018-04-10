@@ -33,3 +33,33 @@ type CenterUnLoadObj struct {
 	PrevSiteId int
 	SiteCode string
 }
+
+type CenterSortObj struct {
+	SiteId int
+	SortTime string
+	SortType int
+	EwbNo string
+	HewbNo string
+	OperatorCode string
+	PalletNo string
+	SiteCode string
+}
+
+type CenterPalletObj struct {
+	SiteCode string
+	AreaCode string
+	PlatformCode string
+	PrevSiteName string
+	ServicesType string
+	NextSiteName string
+	PalletType string
+	Weight float32
+	Volume float32
+	EwbNo string
+	EwbsListNo string
+	HewbNo string
+	PalletNo string
+	PalletUserCode string
+}
+
+

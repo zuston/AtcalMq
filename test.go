@@ -10,6 +10,9 @@ import (
 	"bufio"
 	"strings"
 	"io"
+	"time"
+	"github.com/zuston/AtcalMq/rabbitmq"
+	"github.com/json-iterator/go"
 )
 
 type Server struct {
@@ -34,7 +37,30 @@ type ClList struct{
 
 
 func main() {
-	go core.NewWatcher()
+
+	sd := core.UidGen()
+	fmt.Println(sd)
+	return
+
+	str := `
+		{"ServerName":{"ip":12,"op":"iou"},"ServerIP":"123"}
+	`
+	v := &Server{}
+	jsoniter.Unmarshal([]byte(str),&v)
+	fmt.Println(v.ServerIP)
+	return
+
+	go func() {
+		time.Sleep(5*time.Second)
+		fmt.Println("output go")
+	}()
+	defer func() {
+		fmt.Println("defer")
+	}()
+
+	return
+
+	go rabbitmq.NewWatcher()
 	select {
 
 	}
@@ -74,8 +100,8 @@ func main() {
 	return
 
 	var s Serverslice
-	str := `{"servers":[{"serverName":"Shanghai_VPN","serverIP":"127.0.0.1"},{"serverName":"Beijing_VPN","serverIP":"127.0.0.2"}]}`
-	json.Unmarshal([]byte(str), &s)
+	p := `{"servers":[{"serverName":"Shanghai_VPN","serverIP":"127.0.0.1"},{"serverName":"Beijing_VPN","serverIP":"127.0.0.2"}]}`
+	json.Unmarshal([]byte(p), &s)
 	fmt.Println(s)
 
 

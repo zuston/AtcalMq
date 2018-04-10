@@ -4,7 +4,6 @@ import (
 	"github.com/streadway/amqp"
 	"fmt"
 	"github.com/zuston/AtcalMq/util"
-	"github.com/zuston/AtcalMq/core"
 )
 
 const (
@@ -35,7 +34,7 @@ type ConsumerFactory struct {
 	// 监视器，防止处理队列挂掉，重新再连接
 	restartChan chan string
 	// registerMapper
-	registerMapper map[string]func(msgChan <-chan amqp.Delivery, c chan string)
+	registerMapper map[string]func(msgChan <-chan amqp.Delivery)
 	// register rabbitmq connection and channel struct mapper
 	registerConnMapper map[string]*RabbitConn
 }
@@ -58,7 +57,7 @@ func NewConsumerFactory(url string, exchange string, exchangeType string) (*Cons
 		exchangeType:exchangeType,
 		amqpUrl:url,
 		restartChan:make(chan string,20),
-		registerMapper:make(map[string]func(msgChan <-chan amqp.Delivery, c chan string),10),
+		registerMapper:make(map[string]func(msgChan <-chan amqp.Delivery),10),
 		registerConnMapper:make(map[string]*RabbitConn,10),
 	}
 	// start the dial
@@ -74,9 +73,9 @@ func NewConsumerFactory(url string, exchange string, exchangeType string) (*Cons
 	return cf, nil
 }
 
-func (cf *ConsumerFactory) Register(queueName string, f func(msgChan <-chan amqp.Delivery, c chan string)) error {
+func (cf *ConsumerFactory) Register(queueName string, f func(msgChan <-chan amqp.Delivery)) error {
 	// add the register queueName to Supervisor component
-	core.AddSupervisorQueue(queueName)
+	AddSupervisorQueue(queueName)
 	// set the special queue color
 	cf.zloger.Info("%c[1;40;32m%s%c[0m register to factory",0x1B,queueName,0x1B)
 	tempMap := make(Consumer,1)
@@ -102,14 +101,14 @@ func (cf *ConsumerFactory) Handle() {
 	// 监听异步执行的任务,挂掉则重启
 	go func(){
 		for stopQueueName := range cf.restartChan{
-			cf.registerConnMapper[stopQueueName].channel.Cancel(setConsumerTag(stopQueueName),false)
-			cf.registerConnMapper[stopQueueName].conn.Close()
+			//cf.registerConnMapper[stopQueueName].channel.Cancel(setConsumerTag(stopQueueName),false)
+			//cf.registerConnMapper[stopQueueName].conn.Close()
 			f := cf.registerMapper[stopQueueName]
 			tempMap := make(Consumer, 1)
 			tempMap[stopQueueName] = f
 			// 重启任务
 			cf.zloger.Info("[%s] restart listening the channel",stopQueueName)
-			util.WechatNotify(fmt.Sprintf("%s-restart listening the channel",stopQueueName))
+			util.WechatNotify(fmt.Sprintf("[%s] restart listening the channel",stopQueueName))
 			cf.registerChan <- tempMap
 		}
 	}()
@@ -124,7 +123,8 @@ func (cf *ConsumerFactory) Handle() {
 			cf.zloger.Debug("ready to dial...")
 			amqpConn, err := amqp.Dial(cf.amqpUrl)
 			if err!=nil {
-				cf.zloger.Error("dial amqp Connection error : %s",err)
+				cf.zloger.Error("[%s] dial amqp Connection error : %s",queueName,err)
+				util.WechatNotify(fmt.Sprintf("[%s] dial amqp Connection error : %s",queueName,err))
 				continue
 			}
 
@@ -221,6 +221,13 @@ func (cf *ConsumerFactory) Handle() {
 				channel:channel,
 			}
 			go handleFunc.(func(msgChan <-chan amqp.Delivery, c chan string))(deliveries, cf.restartChan)
+
+			go func(){
+				// 处理数据业务流程
+				handleFunc.(func(msgChan <-chan amqp.Delivery))(deliveries)
+				// 结束通知,便于重启
+				cf.restartChan <- queueName
+			}()
 		}
 	}
 }

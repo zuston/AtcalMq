@@ -75,12 +75,12 @@ func sendWechat(notify string) bool{
 		return false
 	}
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	_, err = ioutil.ReadAll(resp.Body)
 	if err!=nil {
 		//error
 		return false
 	}
-	fmt.Println(string(body))
+	//fmt.Println(string(body))
 	return true
 }
 

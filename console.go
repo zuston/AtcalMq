@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"strconv"
 	"fmt"
+	"github.com/zuston/AtcalMq/rabbitmq"
 )
 
 var (
@@ -118,7 +119,7 @@ func main() {
 	initBarLabelTag := true
 	termui.Handle("/timer/1s", func(e termui.Event) {
 		//t := e.Data.(termui.EvtTimer)
-		var jv []object.SupervisorObj
+		var jv []rabbitmq.SupervisorObj
 		json.Unmarshal([]byte(currentInfos),&jv)
 		if initBarLabelTag {
 			var labels []string

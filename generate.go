@@ -11,10 +11,12 @@ import (
 generate the code
  */
 
-var strring = `{"ewbNo":"300175881167","ewbsListNo":"332122415218031803","hewbNo":"30017588116700030001","operatorCode":"00101949","prevSiteCode":"5103032","prevSiteId":3321,"scanMan":"00101949","scanTime":"2018-03-19 15:48:00","scanType":1,"siteCode":"5272002","volume":0,"weight":0},{"ewbNo":"300175881167","ewbsListNo":"332122415218031803","hewbNo":"30017588116700030002","operatorCode":"00101949","prevSiteCode":"5103032","prevSiteId":3321,"scanMan":"00101949","scanTime":"2018-03-19 15:48:01","scanType":1,"siteCode":"5272002","volume":0,"weight":0},{"ewbNo":"300170299405","ewbsListNo":"88772448218031801","hewbNo":"30017029940500010001","operatorCode":"067286,00096276,00100210","prevSiteCode":"8982002","prevSiteId":8877,"scanMan":"067286","scanTime":"2018-03-19 15:48:00","scanType":1,"siteCode":"0202000","siteId":2448,"volume":0,"weight":0}]`
+var strring = `
 
+[{"areaCode":"B3","ewbNo":"300151337277","ewbsListNo":"49724048218013001","hewbNo":"30015133727700030002","nextSiteName":"漳州分拨中心","palletNo":"048255201802010552037450letTime":"2018-02-01 05:53:09","palletType":"1","palletUserCode":"048255","platformCode":"001","prevSiteName":"松江分拨中心","servicesType":"标准快运","siteCode":"0592001",048,"volume":0.33,"weight":76.67},{"areaCode":"B3","ewbNo":"300150837423","ewbsListNo":"49724048218013001","hewbNo":"30015083742300030001","nextSiteName":"漳州分拨中心","pa":"048255201802010552037450","palletTime":"2018-02-01 05:53:18","palletType":"1","palletUserCode":"048255","platformCode":"001","prevSiteName":"松江分拨中心","servicesType"","siteCode":"0592001","siteId":4048,"volume":0.14,"weight":28.33}]
 
-var objectName = "CenterUnLoadObj"
+`
+var objectName = "CenterPalletObj"
 
 
 //var strring string

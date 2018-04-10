@@ -1,4 +1,4 @@
-package core
+package rabbitmq
 
 import (
 	"net/rpc"
@@ -9,7 +9,6 @@ import (
 	"time"
 	"fmt"
 	"github.com/tidwall/gjson"
-	"github.com/zuston/AtcalMq/core/object"
 	"github.com/json-iterator/go"
 	"strconv"
 )
@@ -18,9 +17,12 @@ import (
 get the rabbit mq info from the different original datasource
 exposed to rpc
  */
-const (
-	QUEUE_CENTERLOAD = "ane_its_ai_data_centerLoad_queue"
-)
+
+type SupervisorObj struct {
+	QueueName string
+	Overstock string
+	UnitHandlerAblitity int
+}
 
 var (
 	apiUsername string
@@ -121,9 +123,9 @@ func (w *Watcher) GetUnitHandlerAbility(queueName string, result *string) error{
 
 // 获取所有队列情况，返回json
 func (w *Watcher) GetAll(tag string, result *string) error{
-	var supervisorEntities []object.SupervisorObj
+	var supervisorEntities []SupervisorObj
 	for _,v := range queueNameContainer{
-		tempSupervisorObj := object.SupervisorObj{
+		tempSupervisorObj := SupervisorObj{
 			Overstock:queueNameCountMapper[v],
 			QueueName:v,
 			UnitHandlerAblitity:queueUnitHandlerMapper[v],
