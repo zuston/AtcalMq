@@ -86,7 +86,7 @@ func SaveModelGen(object interface{}, queue string) func(){
 		VEHICLE_NO:"Link_Vehicle",
 		OPERATOR_CODE:"Link_Operator",
 
-		NEXT_SITE_ID : "Link_Ewb",
+		NEXT_SITE_ID : "Link_Site",
 	}
 
 	// 基础信息存储 model map
@@ -130,7 +130,7 @@ func SaveModelGen(object interface{}, queue string) func(){
 						linkCfName = fmt.Sprintf("%s_%s","nextSite",linkCfName)
 					}
 					liCfMapper := map[string]map[string][]byte{linkCfName:liMapper}
-					linkPutReq, err := hrpc.NewAppStr(context.Background(),linkTnList[v],lrk,liCfMapper)
+					linkPutReq, err := hrpc.NewPutStr(context.Background(),linkTnList[v],lrk,liCfMapper)
 					if err!=nil {
 						hlogger.Error("[%s] link [%s] build hrpc error : %s",queue,v,err)
 						continue

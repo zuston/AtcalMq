@@ -23,7 +23,7 @@ func init() {
 	configMapper,_ := util.ConfigReader("./mq.cfg")
 
 	uri = configMapper["mq_uri"]
-	queue = "ane_its_ai_biz_order_queue"
+	queue = "ane_its_ai_basic_vehicleLine_queue"
 	bindingKey = queue
 }
 

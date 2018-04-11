@@ -38,6 +38,11 @@ type ClList struct{
 
 func main() {
 
+	select {
+
+	}
+	fmt.Println("he")
+
 	sd := core.UidGen()
 	fmt.Println(sd)
 	return

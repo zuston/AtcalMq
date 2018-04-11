@@ -62,4 +62,54 @@ type CenterPalletObj struct {
 	PalletUserCode string
 }
 
+// 2018-04-11
+
+type CenterTransportObj struct {
+	NextSiteName string
+	CarNo string
+	TaskNo string
+	TriggerTime string
+	ViaOrder int
+}
+
+type EwbsListObj struct {
+	EwbsListNo string
+	OperationType int
+	TaskStartTime string
+	TaskType int
+}
+
+// 未写
+type VehicleLineObj struct {
+	ViaCount int
+	StartSiteName string
+	TaskDetail []taskDetailObj
+	CarType string
+	CarNo string
+	CreatedTime string
+	ModifiedTime string
+	IsDeleted int
+	EndSiteName string
+	TaskNo string
+	LineName string
+	DriveName string
+	PhoneNo string
+	LoadModel string
+}
+
+type taskDetailObj struct {
+	TaskNo string
+	ActualOutTime string
+	ViaOrder int
+	ViaSiteName string
+	NextSiteName string
+	ActualArriveTime string
+	PlanArriveTime string
+	PlanOutTime string
+}
+
+
+
+
+
 

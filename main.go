@@ -24,6 +24,7 @@ var lloger *util.Logger
 
 var (
 	testTag = flag.Bool("test",false,"read the mq config.default is producing environment")
+	showTag = flag.Bool("show",false,"just open the rpc, not consume the data")
 )
 
 var (
@@ -33,6 +34,14 @@ var (
 
 func init(){
 	flag.Parse()
+	if *showTag {
+		for _,v := range core.BasicInfoTableNames{
+			rabbitmq.AddSupervisorQueue(v)
+		}
+		rabbitmq.NewWatcher()
+		return
+	}
+
 	// init the log instance
 	lloger, _ = util.NewLogger(util.DEBUG_LEVEL, "/tmp/ane.log")
 	// the log status is debug state
@@ -74,7 +83,18 @@ func main(){
 	// 2.5.2
 	cf.Register(core.QUEUE_DATA_CENTERUNLOAD, core.DataCenterUnloadHandler)
 
+	// 2.5.4
+	cf.Register(core.QUEUE_DATA_CENTERSORT, core.DataCenterSortHandler)
+	// 2.5.3
+	cf.Register(core.QUEUE_DATA_CENTERPALLET, core.DataCenterPalletHandler)
 
+	// 2.8.5
+	cf.Register(core.QUEUE_TRIGGER_CENTERTRANSPORT, core.TriggerCenterTransportHandler)
+
+	// BIZ EWBSLIST 2.4
+	cf.Register(core.QUEUE_BIZ_EWBSLIST, core.BizEwbslistHandler)
+
+	/**
 	// BIZ ORDER 2.1
 	cf.Register(core.QUEUE_BIZ_ORDER, core.BizOrderHandler)
 
@@ -84,19 +104,9 @@ func main(){
 	// BASIC ROUTE 2.3
 	cf.Register(core.QUEUE_BASIC_ROUTE, core.BasicRouteHandler)
 
-	// BIZ EWBSLIST 2.4
-	cf.Register(core.QUEUE_BIZ_EWBSLIST, core.BizEwbslistHandler)
 
 	// DATA SITELOAD 2.5.1
 	cf.Register(core.QUEUE_DATA_SITELOAD, core.DataSiteLoadHandler)
-
-
-	// 2.5.3
-	cf.Register(core.QUEUE_DATA_CENTERPALLET, core.DataCenterPalletHandler)
-
-	// 2.5.4
-	cf.Register(core.QUEUE_DATA_CENTERSORT, core.DataCenterSortHandler)
-
 
 	// 2.6
 	cf.Register(core.QUEUE_BASIC_AREA, core.BasicAreaHandler)
@@ -116,9 +126,6 @@ func main(){
 	//2.8.4
 	cf.Register(core.QUEUE_TRIGGER_STAYORLEAVE, core.TriggerStayOrLeaveHandler)
 
-	// 2.8.5
-	cf.Register(core.QUEUE_TRIGGER_CENTERTRANSPORT, core.TriggerCenterTransportHandler)
-
 	//2.9
 	cf.Register(core.QUEUE_BASIC_SITE, core.BasicSiteHandler)
 
@@ -128,13 +135,14 @@ func main(){
 	//2.11
 	cf.Register(core.QUEUE_BASIC_VEHICLELINE, core.BasicVehicleLineHandler)
 
+	*/
+
 	go cf.Handle()
 	// provide the rpc service, expose the port 9898
 	rabbitmq.NewWatcher()
 
-	// main process blocking
-	select {}
-
+	select {
+	}
 }
 
 // producer demo

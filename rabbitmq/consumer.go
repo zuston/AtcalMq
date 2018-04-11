@@ -103,6 +103,9 @@ func (cf *ConsumerFactory) Handle() {
 		for stopQueueName := range cf.restartChan{
 			//cf.registerConnMapper[stopQueueName].channel.Cancel(setConsumerTag(stopQueueName),false)
 			//cf.registerConnMapper[stopQueueName].conn.Close()
+
+			//cf.zloger.Error("[%s] stop",stopQueueName)
+
 			f := cf.registerMapper[stopQueueName]
 			tempMap := make(Consumer, 1)
 			tempMap[stopQueueName] = f
@@ -110,6 +113,7 @@ func (cf *ConsumerFactory) Handle() {
 			cf.zloger.Info("[%s] restart listening the channel",stopQueueName)
 			util.WechatNotify(fmt.Sprintf("[%s] restart listening the channel",stopQueueName))
 			cf.registerChan <- tempMap
+
 		}
 	}()
 
@@ -220,7 +224,6 @@ func (cf *ConsumerFactory) Handle() {
 				conn:amqpConn,
 				channel:channel,
 			}
-			go handleFunc.(func(msgChan <-chan amqp.Delivery, c chan string))(deliveries, cf.restartChan)
 
 			go func(){
 				// 处理数据业务流程
