@@ -44,7 +44,7 @@ func init(){
 	// 初始化队列数组，便于curl获取
 	//queueNameContainer = make([]string,1)
 
-	configMapper,_ := util.ConfigReader("/opt/mq.cfg")
+	configMapper,_ := util.ConfigReader("/opt/tmq.cfg")
 	apiUsername = configMapper["username"]
 	apiPassword = configMapper["password"]
 	apiAddress = configMapper["apiaddress"]
@@ -56,17 +56,22 @@ func init(){
 	// 初始化mapper
 	queueNameCountMapper = make(map[string]string,1)
 	queueUnitHandlerMapper = make(map[string]int,1)
+
+	return
 }
 
-
-func rabbitCliApi(queueName string) (string,error) {
-	client := &http.Client{}
+func simpleRabbitStatus(queueName string) (string,error) {
 	apiUrl := fmt.Sprintf("%s/%s",apiAddress,queueName)
+	return rabbitStatus(apiUrl)
+}
+
+func rabbitStatus(url string)(string,error){
+	client := &http.Client{}
+	apiUrl := url
 	req, err := http.NewRequest("GET", apiUrl, nil)
 	req.SetBasicAuth(apiUsername, apiPassword)
 	resp, err := client.Do(req)
 	if err != nil{
-		zlloger.Error("rabbitCli api request error : %s",err)
 		return "",err
 	}
 	bodyText, err := ioutil.ReadAll(resp.Body)
@@ -83,24 +88,43 @@ func Supervisor(){
 	// 获取当前队列积压数据量
 	// 循环获取
 	for {
-		for _,v := range queueNameContainer{
-			queuename := v
-			jsonResp,err := rabbitCliApi(queuename)
-			if err!=nil {
-				errorFormat := fmt.Sprintf("supervisor timely got [%s] error : [%s]",queuename,err)
-				zlloger.Error(errorFormat)
-				util.WechatNotify(errorFormat)
-				continue
-			}
-			countV := gjson.Get(jsonResp,"messages")
-			originalCount := queueNameCountMapper[queuename]
-			queueNameCountMapper[queuename] = countV.String()
+		//for _,v := range queueNameContainer{
+		//	queuename := v
+		//	jsonResp,err := simpleRabbitStatus(queuename)
+		//	if err!=nil {
+		//		errorFormat := fmt.Sprintf("supervisor timely got [%s] error : [%s]",queuename,err)
+		//		zlloger.Error(errorFormat)
+		//		util.WechatNotify(errorFormat)
+		//		continue
+		//	}
+		//	countV := gjson.Get(jsonResp,"messages")
+		//	originalCount := queueNameCountMapper[queuename]
+		//	queueNameCountMapper[queuename] = countV.String()
+		//
+		//	// 设置unitHandlerAbility
+		//	originalCountInt, _ := strconv.Atoi(originalCount)
+		//	countVInt, _ := strconv.Atoi(countV.String())
+		//	queueUnitHandlerMapper[queuename] = originalCountInt-countVInt
+		//
+		//}
+		jsonResp, err := rabbitStatus(apiAddress)
+		if err!=nil {
+			errorFormat := fmt.Sprintf("supervisor timely got error : [%s]",err)
+			zlloger.Error(errorFormat)
+			util.WechatNotify(errorFormat)
+			continue
+		}
+		countList := (gjson.Get(jsonResp,"#.messages"))
+		nameList := gjson.Get(jsonResp,"#.name")
+		for i,v := range countList.Array(){
+			currentV := v
+			name := nameList.Array()[i].String()
+			originalV := queueNameCountMapper[name]
+			queueNameCountMapper[name] = currentV.String()
 
-			// 设置unitHandlerAbility
-			originalCountInt, _ := strconv.Atoi(originalCount)
-			countVInt, _ := strconv.Atoi(countV.String())
-			queueUnitHandlerMapper[queuename] = originalCountInt-countVInt
-
+			originalCountInt, _ := strconv.Atoi(originalV)
+			countVInt, _ := strconv.Atoi(currentV.String())
+			queueUnitHandlerMapper[name] = originalCountInt-countVInt
 		}
 		time.Sleep(60*time.Second)
 	}

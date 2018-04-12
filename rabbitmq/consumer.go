@@ -34,7 +34,7 @@ type ConsumerFactory struct {
 	// 监视器，防止处理队列挂掉，重新再连接
 	restartChan chan string
 	// registerMapper
-	registerMapper map[string]func(msgChan <-chan amqp.Delivery)
+	registerMapper map[string]func(queue string,msgChan <-chan amqp.Delivery)
 	// register rabbitmq connection and channel struct mapper
 	registerConnMapper map[string]*RabbitConn
 }
@@ -57,7 +57,7 @@ func NewConsumerFactory(url string, exchange string, exchangeType string) (*Cons
 		exchangeType:exchangeType,
 		amqpUrl:url,
 		restartChan:make(chan string,20),
-		registerMapper:make(map[string]func(msgChan <-chan amqp.Delivery),10),
+		registerMapper:make(map[string]func(queue string,msgChan <-chan amqp.Delivery),10),
 		registerConnMapper:make(map[string]*RabbitConn,10),
 	}
 	// start the dial
@@ -73,7 +73,7 @@ func NewConsumerFactory(url string, exchange string, exchangeType string) (*Cons
 	return cf, nil
 }
 
-func (cf *ConsumerFactory) Register(queueName string, f func(msgChan <-chan amqp.Delivery)) error {
+func (cf *ConsumerFactory) Register(queueName string, f func(queue string,msgChan <-chan amqp.Delivery)) error {
 	// add the register queueName to Supervisor component
 	AddSupervisorQueue(queueName)
 	// set the special queue color
@@ -82,6 +82,13 @@ func (cf *ConsumerFactory) Register(queueName string, f func(msgChan <-chan amqp
 	tempMap[queueName] = f
 	cf.registerChan <- tempMap
 	cf.registerMapper[queueName] = f
+	return nil
+}
+
+func (cf *ConsumerFactory) RegisterAll(queueList []string,f func(queue string,msgChan <-chan amqp.Delivery)) error{
+	for _,v := range queueList{
+		cf.Register(v,f)
+	}
 	return nil
 }
 
@@ -216,9 +223,6 @@ func (cf *ConsumerFactory) Handle() {
 				continue
 			}
 
-			//log.Println(queue.Name,queue.Consumers,queue.Messages)
-			// provider info to supervisor
-			// remove it because of getting the data from api, like
 			// curl -i -u sitrab:sitrab123456 http://58.215.167.31:15672/api/queues/its-test/ane_its_ai_data_centerLoad_queue
 			cf.registerConnMapper[queueName] = &RabbitConn{
 				conn:amqpConn,
@@ -227,7 +231,7 @@ func (cf *ConsumerFactory) Handle() {
 
 			go func(){
 				// 处理数据业务流程
-				handleFunc.(func(msgChan <-chan amqp.Delivery))(deliveries)
+				handleFunc.(func(queue string,msgChan <-chan amqp.Delivery))(queueName,deliveries)
 				// 结束通知,便于重启
 				cf.restartChan <- queueName
 			}()

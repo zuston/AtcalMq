@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"runtime"
 	"github.com/ivpusic/grpool"
+	"fmt"
 )
 
 // singleton
@@ -31,12 +32,30 @@ func init(){
 	runtime.GOMAXPROCS(numCpus)
 }
 
+func BasicHandler(queue string, msgChan <-chan amqp.Delivery){
+	logPath := fmt.Sprintf("/tmp/backup/%d.backup",queue)
+	backuper,_ := util.NewLogger(util.INFO_LEVEL,logPath)
+
+	pool := grpool.NewPool(100, 100)
+	defer pool.Release()
+
+	for msg := range msgChan{
+		msg.Ack(false)
+
+		backuper.Info(string(msg.Body))
+		list := ModelGen(msg.Body)
+		for _,v := range list{
+			pool.JobQueue <- SaveModelGen(v,queue)
+		}
+	}
+}
+
+
 /**
 	 consume the mq msg
  */
 func CenterLoadHandler(msgChan <-chan amqp.Delivery){
 
-	// 备份hdfs的文件
 	backuper,_ := util.NewLogger(util.INFO_LEVEL,"/tmp/backup/centerload.backup")
 
 	var clList []object.CenterLoadObj

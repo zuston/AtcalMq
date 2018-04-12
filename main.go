@@ -77,22 +77,26 @@ func main(){
 		panic("fail to connect to the message queue of rabbitmq")
 	}
 
+	cf.RegisterAll(core.BasicInfoTableNames,core.BasicHandler)
+
+	/*
+
 	// 2.5.5 centerload queue
-	cf.Register(core.QUEUE_DATA_CENTERLOAD, core.CenterLoadHandler)
+	cf.Register(core.QUEUE_DATA_CENTERLOAD, core.BasicHandler)
 
 	// 2.5.2
-	cf.Register(core.QUEUE_DATA_CENTERUNLOAD, core.DataCenterUnloadHandler)
+	cf.Register(core.QUEUE_DATA_CENTERUNLOAD, core.BasicHandler)
 
 	// 2.5.4
-	cf.Register(core.QUEUE_DATA_CENTERSORT, core.DataCenterSortHandler)
+	cf.Register(core.QUEUE_DATA_CENTERSORT, core.BasicHandler)
 	// 2.5.3
-	cf.Register(core.QUEUE_DATA_CENTERPALLET, core.DataCenterPalletHandler)
+	cf.Register(core.QUEUE_DATA_CENTERPALLET, core.BasicHandler)
 
 	// 2.8.5
-	cf.Register(core.QUEUE_TRIGGER_CENTERTRANSPORT, core.TriggerCenterTransportHandler)
+	cf.Register(core.QUEUE_TRIGGER_CENTERTRANSPORT, core.BasicHandler)
 
 	// BIZ EWBSLIST 2.4
-	cf.Register(core.QUEUE_BIZ_EWBSLIST, core.BizEwbslistHandler)
+	cf.Register(core.QUEUE_BIZ_EWBSLIST, core.BasicHandler)
 
 	/**
 	// BIZ ORDER 2.1

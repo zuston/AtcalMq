@@ -24,3 +24,8 @@ func TestModelMapGen(t *testing.T){
 func TestUidGen(t *testing.T){
 	core.UidGen()
 }
+
+func ModelGen(t *testing.T){
+	jsonline := `[{"name":"zuston","age":123,"period":1.23}]`
+	core.ModelGen([]byte(jsonline))
+}
