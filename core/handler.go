@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"github.com/ivpusic/grpool"
 	"fmt"
+	"github.com/zuston/AtcalMq/rabbitmq"
 )
 
 // singleton
@@ -33,20 +34,55 @@ func init(){
 }
 
 func BasicHandler(queue string, msgChan <-chan amqp.Delivery){
-	logPath := fmt.Sprintf("/tmp/backup/%d.backup",queue)
+	logPath := fmt.Sprintf("/tmp/backup/%s.backup",queue)
 	backuper,_ := util.NewLogger(util.INFO_LEVEL,logPath)
 
-	pool := grpool.NewPool(100, 100)
+	pool := grpool.NewPool(100, 1000)
 	defer pool.Release()
+
+	hlogger.Info("[%s] enter the handler",queue)
 
 	for msg := range msgChan{
 		msg.Ack(false)
+		hlogger.Debug("+++[%s] first enter",queue)
 
 		backuper.Info(string(msg.Body))
 		list := ModelGen(msg.Body)
 		for _,v := range list{
+			// 统计埋点
+			rabbitmq.StatisticsChan <- queue
 			pool.JobQueue <- SaveModelGen(v,queue)
 		}
+	}
+}
+
+func TestHandler(queue string, msgChan <-chan amqp.Delivery){
+	logPath := fmt.Sprintf("/tmp/backup/%s.backup",queue)
+	backuper,_ := util.NewLogger(util.DEBUG_LEVEL,logPath)
+
+	pool := grpool.NewPool(10, 100)
+	defer pool.Release()
+
+	hlogger.Info("[%s] enter the handler",queue)
+
+	for msg := range msgChan{
+		msg.Ack(false)
+		hlogger.Debug("+++[%s] first enter",queue)
+
+		backuper.Info(string(msg.Body))
+		list := ModelGen(msg.Body)
+		for _,v := range list{
+			hlogger.Debug("+++[%s] handle one",queue)
+			// 统计埋点
+			rabbitmq.StatisticsChan <- queue
+			pool.JobQueue <- SaveModelGen(v,queue)
+
+			for key,value := range v{
+				hlogger.Info("%s=%s",key,string(value))
+			}
+			return
+		}
+		return
 	}
 }
 

@@ -82,3 +82,26 @@ var LinkTableNames = []string{
 	"Link_Vehicle",
 	"Link_Operator",
 }
+
+// 若为uid ，即无对应的key值，即用uid,用多版本记录
+var LinkKey = map[string]string{
+	QUEUE_DATA_CENTERLOAD : "scanTime"                                  ,
+	QUEUE_BIZ_ORDER : "ewbDate"                                         ,
+	QUEUE_BIZ_EWB : "uid"                                               ,
+	QUEUE_BASIC_ROUTE : "startDate"                                     ,
+	QUEUE_BIZ_EWBSLIST : "taskStartTime"                                ,
+	QUEUE_DATA_SITELOAD : "scanTime"                                    ,
+	QUEUE_DATA_CENTERUNLOAD : "scanTime"                                ,
+	QUEUE_DATA_CENTERPALLET : "palletTime"                              ,
+	QUEUE_DATA_CENTERSORT : "sortTime"                                  ,
+	QUEUE_BASIC_AREA : "uid"                                            ,
+	QUEUE_BASIC_ATTEND : "attendanceDay"                                ,
+	QUEUE_TRIGGER_SITESEND : "triggerTime"                              ,
+	QUEUE_TRIGGER_SITEUPLOAD : "triggerTime"                            ,
+	QUEUE_TRIGGER_INOROUT : "triggerTime"                               ,
+	QUEUE_TRIGGER_STAYORLEAVE : "triggerTime"                           ,
+	QUEUE_TRIGGER_CENTERTRANSPORT : "triggerTime"                       ,
+	QUEUE_BASIC_SITE : "createdTime"                                    ,
+	QUEUE_BASIC_VEHICLELINE : "createdTime"                             ,
+	QUEUE_BASIC_PLATFORM : "uid"                                        ,
+}

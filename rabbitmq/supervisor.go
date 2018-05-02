@@ -11,6 +11,11 @@ import (
 	"github.com/tidwall/gjson"
 	"github.com/json-iterator/go"
 	"strconv"
+	"os/exec"
+	"bytes"
+	"io"
+	"sync"
+	"strings"
 )
 
 /**
@@ -38,13 +43,22 @@ var (
  queueNameContainer []string
 )
 
+var (
+	// 放置队列名
+	StatisticsChan chan string
+	// 统计容器
+	statisticsContainer map[string]int64
+
+	lock *sync.Mutex
+)
+
 var zlloger *util.Logger
 
 func init(){
 	// 初始化队列数组，便于curl获取
 	//queueNameContainer = make([]string,1)
 
-	configMapper,_ := util.ConfigReader("/opt/tmq.cfg")
+	configMapper,_ := util.ConfigReader("/opt/mq.cfg")
 	apiUsername = configMapper["username"]
 	apiPassword = configMapper["password"]
 	apiAddress = configMapper["apiaddress"]
@@ -57,14 +71,50 @@ func init(){
 	queueNameCountMapper = make(map[string]string,1)
 	queueUnitHandlerMapper = make(map[string]int,1)
 
+	statisticsContainer = make(map[string]int64,20)
+	lock = new(sync.Mutex)
+	StatisticsChan = make(chan string,1000)
 	return
 }
 
-func simpleRabbitStatus(queueName string) (string,error) {
-	apiUrl := fmt.Sprintf("%s/%s",apiAddress,queueName)
-	return rabbitStatus(apiUrl)
+func statistics(){
+	minTimer := time.NewTimer(time.Second*30)
+	dayTimer := time.NewTimer(time.Second*60*60*24)
+
+	go func() {
+		for {
+			select {
+			case <- minTimer.C :
+				lock.Lock()
+				defer lock.Unlock()
+				statisticNotify()
+			case dayTimer:
+				statisticNotify()
+				// 重新初始化
+				statisticsContainer = make(map[string]int64,20)
+			}
+		}
+	}()
+
+	for queueName := range StatisticsChan{
+		if v, ok := statisticsContainer[queueName];ok{
+			statisticsContainer[queueName] = v+1
+		}else {
+			statisticsContainer[queueName] = 1
+		}
+	}
+
+}
+func statisticNotify() {
+	pushList := make([]string,len(statisticsContainer))
+	for key,value := range statisticsContainer{
+		pushList = append(pushList, key+" : "+fmt.Sprint(value))
+	}
+	util.WechatNotify(strings.Join(pushList,"\n"))
 }
 
+
+// post 调用
 func rabbitStatus(url string)(string,error){
 	client := &http.Client{}
 	apiUrl := url
@@ -79,42 +129,39 @@ func rabbitStatus(url string)(string,error){
 	return s,nil
 }
 
+// shell 调用
+func execShell(commandLine string) (string,error){
+	cmd := exec.Command("/bin/bash","-c",commandLine)
+	var out bytes.Buffer
+
+	cmd.Stdout = &out
+	err := cmd.Run()
+	if err != nil {
+		return out.String(),err
+	}
+	return out.String(),nil
+}
+
 func AddSupervisorQueue(queueName string){
 	queueNameContainer = append(queueNameContainer,queueName)
 }
 
 func Supervisor(){
-
 	// 获取当前队列积压数据量
 	// 循环获取
 	for {
-		//for _,v := range queueNameContainer{
-		//	queuename := v
-		//	jsonResp,err := simpleRabbitStatus(queuename)
-		//	if err!=nil {
-		//		errorFormat := fmt.Sprintf("supervisor timely got [%s] error : [%s]",queuename,err)
-		//		zlloger.Error(errorFormat)
-		//		util.WechatNotify(errorFormat)
-		//		continue
-		//	}
-		//	countV := gjson.Get(jsonResp,"messages")
-		//	originalCount := queueNameCountMapper[queuename]
-		//	queueNameCountMapper[queuename] = countV.String()
-		//
-		//	// 设置unitHandlerAbility
-		//	originalCountInt, _ := strconv.Atoi(originalCount)
-		//	countVInt, _ := strconv.Atoi(countV.String())
-		//	queueUnitHandlerMapper[queuename] = originalCountInt-countVInt
-		//
-		//}
-		jsonResp, err := rabbitStatus(apiAddress)
+		execCommandLine := fmt.Sprintf(`curl  -u %s:%s %s`,apiUsername,apiPassword,apiAddress)
+		jsonResp, err := execShell(execCommandLine)
+
+		//jsonResp, err := rabbitStatus(apiAddress)
+
 		if err!=nil {
 			errorFormat := fmt.Sprintf("supervisor timely got error : [%s]",err)
 			zlloger.Error(errorFormat)
 			util.WechatNotify(errorFormat)
 			continue
 		}
-		countList := (gjson.Get(jsonResp,"#.messages"))
+		countList := gjson.Get(jsonResp,"#.messages")
 		nameList := gjson.Get(jsonResp,"#.name")
 		for i,v := range countList.Array(){
 			currentV := v
@@ -147,6 +194,15 @@ func (w *Watcher) GetUnitHandlerAbility(queueName string, result *string) error{
 
 // 获取所有队列情况，返回json
 func (w *Watcher) GetAll(tag string, result *string) error{
+	b, err := jsonGen()
+	if err!=nil {
+		return err
+	}
+	*result = string(b)
+	return nil
+}
+
+func jsonGen() (string, error){
 	var supervisorEntities []SupervisorObj
 	for _,v := range queueNameContainer{
 		tempSupervisorObj := SupervisorObj{
@@ -159,17 +215,41 @@ func (w *Watcher) GetAll(tag string, result *string) error{
 	b, err := jsoniter.Marshal(supervisorEntities)
 	if err!=nil {
 		zlloger.Error("json encode error : %s",err)
-		return err
+		return "",err
 	}
-	*result = string(b)
-	return nil
+	return string(b),nil
 }
+
+/**
+http service
+ */
+// hello world, the web server
+func GetAll(w http.ResponseWriter, req *http.Request) {
+	json, _ := jsonGen()
+	io.WriteString(w, json)
+}
+
+func initHttp(){
+	http.HandleFunc("/getall", GetAll)
+	err := http.ListenAndServe(":8909", nil)
+	if err != nil {
+		zlloger.Error("ListenAndServe: ", err)
+	}
+}
+
 
 func NewWatcher(){
 	// wechat handler queue
 	go util.NotifyHandlerQueue()
 	// 循环刷新数据
 	go Supervisor()
+
+	// http service
+	go initHttp()
+
+	// 统计
+	go statistics()
+
 	// rpc 暴露接口
 	watcher := new(Watcher)
 	rpc.Register(watcher)

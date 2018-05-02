@@ -20,9 +20,12 @@ const (
 var lock *sync.Mutex
 var randSeek = int64(1)
 
+var clientLock *sync.Mutex
+
 
 func init(){
 	lock = &sync.Mutex{}
+	clientLock = &sync.Mutex{}
 }
 func GetQueueNameFromConsumerTag(s string) string {
 	index := strings.Index(s,"-")
@@ -93,6 +96,9 @@ func SaveModelGen(object interface{}, queue string) func(){
 
 	// 基础信息存储 model map
 	basicInfoMapper := ModelMapperGen(object)
+	for key,value := range basicInfoMapper{
+		hlogger.Debug("change [%s]=[%s]",key,string(value))
+	}
 	// 基础信息--columnFamily
 	basicInfoCf := "basic"
 	// 基础信息--tableName
@@ -103,6 +109,7 @@ func SaveModelGen(object interface{}, queue string) func(){
 	basicInfoUid := UidGen()
 
 	return func() {
+		hlogger.Debug("[%s] metaTable rowkey : [%s]",queue,basicInfoUid)
 		// 基础信息--putrequest
 		biPutRequest, err := hrpc.NewPutStr(context.Background(),basicInfoTn,basicInfoUid,basicInfoCfMapper)
 		if err!=nil {
@@ -117,7 +124,8 @@ func SaveModelGen(object interface{}, queue string) func(){
 
 		// 关联信息
 		for _,v := range linkList{
-			if linkrowKey,ok := basicInfoMapper[v]; ok {
+			hlogger.Debug("[%s] find the mapper value : [%s]",strings.ToLower(v),basicInfoMapper[strings.ToLower(v)])
+			if linkrowKey,ok := basicInfoMapper[strings.ToLower(v)]; ok {
 				linkrowKeys := []string{string(linkrowKey)}
 				// 操作者有多个
 				if v==OPERATOR_CODE {
@@ -125,8 +133,13 @@ func SaveModelGen(object interface{}, queue string) func(){
 				}
 
 				for _,lrk := range linkrowKeys{
+					// 去除例如 21850.0000 后缀的rowkey,变成21850
+					lrk := fixRowKey(lrk)
+					hlogger.Debug("[%s] LinkTable rowkey : [%s]",linkTnList[v],lrk)
+					saveKey := genCfColumnKeyName(basicInfoMapper,queue)
+					hlogger.Debug("[%s] saveKey",saveKey)
 					// linkInfoMapper
-					liMapper := map[string][]byte{"uid":[]byte(basicInfoUid)}
+					liMapper := map[string][]byte{saveKey:[]byte(basicInfoUid)}
 					linkCfName := queue
 					if v==NEXT_SITE_ID {
 						linkCfName = fmt.Sprintf("%s_%s","nextSite",linkCfName)
@@ -143,11 +156,27 @@ func SaveModelGen(object interface{}, queue string) func(){
 						continue
 					}
 				}
-
-
 			}
 		}
 	}
+}
+func fixRowKey(str string) string {
+	index := strings.Index(str,".")
+	if str[index+1:]=="0000" {
+		return str[:index]
+	}
+	return str
+}
+
+func genCfColumnKeyName(mapper map[string][]byte, queueName string) string {
+	correspondingColumnName,ok := LinkKey[queueName]
+	hlogger.Debug("[%s] columnName",correspondingColumnName)
+	// 以多版本来记录
+	if !ok || correspondingColumnName=="uid" || string(mapper[correspondingColumnName])==""{
+		// 设置接收的当前时间
+		return time.Now().Format("2006-01-02 15:04:05")
+	}
+	return string(mapper[correspondingColumnName])
 }
 
 // original parser
@@ -159,6 +188,9 @@ func ModelMapperGen(object interface{}) map[string][]byte{
 	kvArr := strings.Split(string(jsonLine),`,"`)
 	for i,v := range kvArr{
 		index := strings.Index(v,":")
+		if index<=-1 {
+			continue
+		}
 		// 去除前缀
 		key := v[:index-1]
 		if i==0 {
@@ -169,22 +201,23 @@ func ModelMapperGen(object interface{}) map[string][]byte{
 		if strings.Contains(value,`"`) {
 			value = value[1:len(value)-1]
 		}
-		basicDataMapper[key] = []byte(value)
+		// 全部改成小写
+		basicDataMapper[strings.ToLower(key)] = []byte(value)
 	}
 
 	return basicDataMapper
 }
 
-func ModelGen(jsonByte []byte) []map[string][]byte{
+func ModelGen(jsonByte []byte) []map[string]string{
 	var tempInterface interface{}
 	err := json.Unmarshal(jsonByte,&tempInterface)
 	if err!=nil {
 		return nil
 	}
-	var retArr []map[string][]byte
+	var retArr []map[string]string
 	for _,v := range tempInterface.([]interface{}){
 
-		jsonMapper := make(map[string][]byte,16)
+		jsonMapper := make(map[string]string,16)
 		jsonOne := v.(map[string]interface{})
 		for key,value := range jsonOne{
 			var mapperValue string
@@ -208,7 +241,7 @@ func ModelGen(jsonByte []byte) []map[string][]byte{
 				mapperValue = value.(string)
 			case types.Nil:
 			}
-			jsonMapper[key] = []byte(mapperValue)
+			jsonMapper[key] = mapperValue
 		}
 		retArr = append(retArr,jsonMapper)
 	}
