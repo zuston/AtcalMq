@@ -78,7 +78,7 @@ func init(){
 }
 
 func statistics(){
-	minTimer := time.NewTimer(time.Second*30)
+	minTimer := time.NewTimer(time.Second*30*60)
 	dayTimer := time.NewTimer(time.Second*60*60*24)
 
 	go func() {
@@ -88,12 +88,16 @@ func statistics(){
 				lock.Lock()
 				defer lock.Unlock()
 				statisticNotify()
-			case dayTimer:
+			case <- dayTimer.C:
 				statisticNotify()
 				// 重新初始化
 				statisticsContainer = make(map[string]int64,20)
 			}
 		}
+	}()
+
+	go func() {
+
 	}()
 
 	for queueName := range StatisticsChan{

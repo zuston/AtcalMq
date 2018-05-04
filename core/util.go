@@ -11,6 +11,7 @@ import (
 	"math/rand"
 	"encoding/json"
 	"go/types"
+	"github.com/zuston/AtcalMq/util"
 )
 
 const (
@@ -22,10 +23,14 @@ var randSeek = int64(1)
 
 var clientLock *sync.Mutex
 
+// 用于测试的cache
+var CacheMapper map[string]int64
 
 func init(){
 	lock = &sync.Mutex{}
 	clientLock = &sync.Mutex{}
+
+	CacheMapper = make(map[string]int64,100)
 }
 func GetQueueNameFromConsumerTag(s string) string {
 	index := strings.Index(s,"-")
@@ -36,7 +41,7 @@ func SetConsumerTag(queueName string) string{
 }
 
 
-func UidGen()string{
+func UidGen() (string,int64){
 	r := rand.New(rand.NewSource(randomSource()))
 
 	var f = func(min, max int64) int64{
@@ -46,9 +51,10 @@ func UidGen()string{
 		return r.Int63n(max-min) + min
 	}
 
-	randomNumber := f(10000,99999)
+	randomNumber := f(100000,999999)
 
-	return fmt.Sprintf("%d%d",randomNumber,time.Now().UnixNano())
+
+	return fmt.Sprintf("%s_%d",time.Now().Format("2006-01-02 15:04:05"),randomNumber),randomNumber
 }
 
 func randomSource()int64{
@@ -70,7 +76,7 @@ const(
 )
 
 // 生成存储model
-func SaveModelGen(object interface{}, queue string) func(){
+func SaveModelGen(object map[string]string, queue string) func(){
 	
 	// 人，站点，车，货
 	// 站点有进出
@@ -94,8 +100,9 @@ func SaveModelGen(object interface{}, queue string) func(){
 		NEXT_SITE_ID : "Link_Site",
 	}
 
-	// 基础信息存储 model map
-	basicInfoMapper := ModelMapperGen(object)
+	// 基础信息存储 model map,似乎是多余的
+	//basicInfoMapper := ModelMapperGen(object)
+	basicInfoMapper := v2Byte(object)
 	for key,value := range basicInfoMapper{
 		hlogger.Debug("change [%s]=[%s]",key,string(value))
 	}
@@ -106,7 +113,9 @@ func SaveModelGen(object interface{}, queue string) func(){
 	// 基础信息--cf 和 model
 	basicInfoCfMapper := map[string]map[string][]byte{basicInfoCf:basicInfoMapper}
 	// 基础信息--uid----rowkey
-	basicInfoUid := UidGen()
+	basicInfoUid,randomNumber := UidGen()
+
+	//CacheMapper[string(basicInfoMapper["hewbno"])] = randomNumber
 
 	return func() {
 		hlogger.Debug("[%s] metaTable rowkey : [%s]",queue,basicInfoUid)
@@ -134,9 +143,9 @@ func SaveModelGen(object interface{}, queue string) func(){
 
 				for _,lrk := range linkrowKeys{
 					// 去除例如 21850.0000 后缀的rowkey,变成21850
-					lrk := fixRowKey(lrk)
+					lrk := FixRowKey(lrk)
 					hlogger.Debug("[%s] LinkTable rowkey : [%s]",linkTnList[v],lrk)
-					saveKey := genCfColumnKeyName(basicInfoMapper,queue)
+					saveKey := fmt.Sprintf("%s_%d",genCfColumnKeyName(basicInfoMapper,queue),randomNumber)
 					hlogger.Debug("[%s] saveKey",saveKey)
 					// linkInfoMapper
 					liMapper := map[string][]byte{saveKey:[]byte(basicInfoUid)}
@@ -160,7 +169,18 @@ func SaveModelGen(object interface{}, queue string) func(){
 		}
 	}
 }
-func fixRowKey(str string) string {
+
+// 转成 value 为字节数组的形式
+func v2Byte(i map[string]string) map[string][]byte {
+	transferMapper := make(map[string][]byte,len(i))
+	for k,v := range i{
+		transferMapper[k] = []byte(v)
+	}
+	return transferMapper
+}
+
+
+func FixRowKey(str string) string {
 	index := strings.Index(str,".")
 	if str[index+1:]=="0000" {
 		return str[:index]
@@ -172,11 +192,15 @@ func genCfColumnKeyName(mapper map[string][]byte, queueName string) string {
 	correspondingColumnName,ok := LinkKey[queueName]
 	hlogger.Debug("[%s] columnName",correspondingColumnName)
 	// 以多版本来记录
-	if !ok || correspondingColumnName=="uid" || string(mapper[correspondingColumnName])==""{
+
+	if strings.ToLower(correspondingColumnName) == "scantime" && string(mapper[strings.ToLower(correspondingColumnName)])=="" {
+		util.WechatNotify(fmt.Sprintf("[%s] lack the [%s]'s value",queueName,correspondingColumnName))
+	}
+	if !ok || correspondingColumnName=="uid" || string(mapper[strings.ToLower(correspondingColumnName)])==""{
 		// 设置接收的当前时间
 		return time.Now().Format("2006-01-02 15:04:05")
 	}
-	return string(mapper[correspondingColumnName])
+	return string(mapper[strings.ToLower(correspondingColumnName)])
 }
 
 // original parser
@@ -241,7 +265,7 @@ func ModelGen(jsonByte []byte) []map[string]string{
 				mapperValue = value.(string)
 			case types.Nil:
 			}
-			jsonMapper[key] = mapperValue
+			jsonMapper[strings.ToLower(key)] = mapperValue
 		}
 		retArr = append(retArr,jsonMapper)
 	}
@@ -277,7 +301,7 @@ func SaveModel(putMapper map[string][]byte,queue string)func(){
 	// 基础信息--cf 和 model
 	basicInfoCfMapper := map[string]map[string][]byte{basicInfoCf:basicInfoMapper}
 	// 基础信息--uid----rowkey
-	basicInfoUid := UidGen()
+	basicInfoUid,_ := UidGen()
 
 	return func() {
 		// 基础信息--putrequest
@@ -320,8 +344,6 @@ func SaveModel(putMapper map[string][]byte,queue string)func(){
 						continue
 					}
 				}
-
-
 			}
 		}
 	}
