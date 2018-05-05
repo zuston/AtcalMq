@@ -100,11 +100,3 @@ func main(){
 	}
 }
 
-// producer demo
-func initProducer(){
-	// send the msg to producer rabbitmq
-	pf, _ := rabbitmq.NewProducerFactory(mq_uri,exchange,exchange_type,false)
-	// put the msg to channel
-	pf.Publish("","")
-	go pf.Handle()
-}

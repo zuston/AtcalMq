@@ -36,6 +36,7 @@ type ProducerFactory struct {
 func NewProducerFactory(uri string, exchange string, exchangeType string, reliable bool) (*ProducerFactory, error) {
 
 	zlloger, _ := util.NewLogger(util.DEBUG_LEVEL,LOGGER_PATH)
+	zlloger.SetDebug()
 
 	cp := &ProducerFactory{
 		zlogger:zlloger,
@@ -150,6 +151,7 @@ func (cp *ProducerFactory) Handle(){
 		); err != nil {
 			cp.zlogger.Error("Exchange Publish Error, routingKey : %s, error : %s", queueName, err)
 		}
+		cp.zlogger.Debug("publish success")
 	}
 }
 
