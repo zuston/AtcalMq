@@ -78,28 +78,27 @@ func init(){
 }
 
 func statistics(){
-	minTimer := time.NewTimer(time.Second*30*60)
-	dayTimer := time.NewTimer(time.Second*60*60*24)
+
+	// 定时器
+	minTicker := time.NewTicker(time.Second*30*60)
+	dayTicker := time.NewTicker(time.Hour*24)
 
 	go func() {
-		for {
-			select {
-			case <- minTimer.C :
-				lock.Lock()
-				defer lock.Unlock()
-				statisticNotify()
-			case <- dayTimer.C:
-				statisticNotify()
-				// 重新初始化
-				statisticsContainer = make(map[string]int64,20)
-			}
+		for _ = range minTicker.C{
+			lock.Lock()
+			defer lock.Unlock()
+			statisticNotify()
 		}
 	}()
 
 	go func() {
-
+		for _ = range dayTicker.C{
+			statisticNotify()
+			statisticsContainer = make(map[string]int64,20)
+		}
 	}()
 
+	// 计数
 	for queueName := range StatisticsChan{
 		if v, ok := statisticsContainer[queueName];ok{
 			statisticsContainer[queueName] = v+1
