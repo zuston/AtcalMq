@@ -8,6 +8,11 @@ import (
 	"log"
 )
 
+
+func TestModelMapper(t *testing.T){
+	//ParseTranslationTable("./optional.model")
+}
+
 func TestPush(t *testing.T){
 	option()
 	select {
