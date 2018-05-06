@@ -104,12 +104,14 @@ func parseComponentKey(componentKey string) (string, string) {
 func getData2Json(tablename string, columnsname []string, translationMapper map[string]string,verifyTime string) []string {
 	// 增加对应的时间选择
 	whereSql := ""
+	// 从效率考虑，当然可以分段分批次取出，懒得写了
+	// todo 有心人写一下呗
 	conditionSql := fmt.Sprintf("select * from %s %s",tablename,whereSql)
 	rows, _,err := mysqlConn.Query(conditionSql)
 	checkErr(err)
-	retList := make([]string,len(rows))
+	var retList []string
 	// 需要更新推送时间的 主键 list
-	updateIdList := make([]int,len(rows))
+	var updateIdList []int
 	for _,row := range rows{
 		fieldsLen := len(row)
 		// 全部设置为string
@@ -129,13 +131,30 @@ func getData2Json(tablename string, columnsname []string, translationMapper map[
 		retList = append(retList,string(convertJson))
 	}
 
-	updateDataOfTimestamp(tablename,updateIdList)
+	idKeyName := columnsname[0]
+	updateDataOfTimestamp(tablename,updateIdList,idKeyName)
 	return retList
 }
 
 // 更新数据时间
-func updateDataOfTimestamp(tablename string, ids []int) {
+func updateDataOfTimestamp(tablename string, ids []int,idKeyName string) {
+	idWheres := zmap(ids, func(v int) string{
+		return fmt.Sprintf("%s=%d",idKeyName,v)
+	})
+	whereSql := "where "+strings.Join(idWheres," OR ")
+	updateTime := time.Now().Format("2006-01-02 15:04:05")
+	updateSql := fmt.Sprintf("update %s set ptime='%s' %s",tablename,updateTime,whereSql)
 
+	mysqlConn.Query(updateSql)
+}
+
+// like the map reduce function
+func zmap(ints []int, mapFunc func(v int) string) []string {
+	var list []string
+	for _,value := range ints{
+		list = append(list,mapFunc(value))
+	}
+	return list
 }
 
 
