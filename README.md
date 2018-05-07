@@ -41,10 +41,22 @@ func main(){
   cf.Register("ane_test",testHandler)
   // 注册多个消息队列，且用同一个回调方法
   cf.RegisterAll([]string{"ane_1","ane_2"},testHandler)
-  
+  // 开启处理模式
+  go cf.Handle()
+  // 开始监视器rpc,主要为 console 程序提供可视化可以不加
+  rabbitmq.NewWatcher()
+  
   func testHandler(queueName string, msgChan <-chan amqp.Delivery){
     for msg := range msgChan{}
   }
 }
 ```
 __就是这么简单和清晰__  
+```go
+// 生产者
+func main(){
+  pf, _ := rabbitmq.NewProducerFactory(mq_uri,exchange,exchange_type,false)
+	 go pf.Handle()
+  pf.Publish("ane_push","hello world")
+}
+```
