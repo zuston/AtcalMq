@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"github.com/zuston/AtcalMq/core/object"
 	"strings"
+	"flag"
 )
 
 
@@ -22,8 +23,18 @@ const(
 	mysqlPassword = "zuston"
 )
 
-func init(){
+const(
+	MODEL_SUFFIX = "model"
+)
 
+var(
+	duration = flag.Duration("duration",time.Minute,"please enter the push duration")
+	optionPath = flag.String("option","/opt/optional.model","the push queue column name")
+	verifyTime = flag.String("verifyTime","","the push time")
+)
+
+func init(){
+	flag.Parse()
 	mysqlConn = mysql.New("tcp", "", "127.0.0.1:3306", mysqlUsername, mysqlPassword, "todo")
 	mysqlConn.Register("set names utf8")
 
@@ -54,10 +65,10 @@ func main(){
 	pf, _ := rabbitmq.NewProducerFactory(mq_uri,exchange,exchange_type,false)
 	go pf.Handle()
 
-	duration := 10*time.Second
-	optionPath := "./optional.model"
-	verifyTime := "2018-09-09 23:00:00"
-	timelyPublish(pf,duration,optionPath,verifyTime)
+	//duration := 10*time.Second
+	//optionPath := "./optional.model"
+	//verifyTime := "2018-09-09 23:00:00"
+	timelyPublish(pf,*duration,*optionPath,*verifyTime)
 }
 
 
@@ -103,7 +114,10 @@ func parseComponentKey(componentKey string) (string, string) {
 
 func getData2Json(tablename string, columnsname []string, translationMapper map[string]string,verifyTime string) []string {
 	// 增加对应的时间选择
-	whereSql := ""
+	whereSql := "where queueTime is null "
+	if verifyTime!="" {
+		whereSql += fmt.Sprintf(`or queueTime>"%s"`,verifyTime)
+	}
 	// 从效率考虑，当然可以分段分批次取出，懒得写了
 	// todo 有心人写一下呗
 	conditionSql := fmt.Sprintf("select * from %s %s",tablename,whereSql)
@@ -143,7 +157,7 @@ func updateDataOfTimestamp(tablename string, ids []int,idKeyName string) {
 	})
 	whereSql := "where "+strings.Join(idWheres," OR ")
 	updateTime := time.Now().Format("2006-01-02 15:04:05")
-	updateSql := fmt.Sprintf("update %s set ptime='%s' %s",tablename,updateTime,whereSql)
+	updateSql := fmt.Sprintf("update %s set queueTime='%s' %s",tablename,updateTime,whereSql)
 
 	mysqlConn.Query(updateSql)
 }
@@ -186,26 +200,35 @@ func checkErr(e error) {
 
 // 形式为 ：{"tablename":{"name":"zname","age":"zage"}}
 func ParseTranslationTable(modelPath string) map[string]map[string]string {
-	data, err := ioutil.ReadFile(modelPath)
-	checkPanic(err)
-	datajson := []byte(data)
-
-	var models []object.PushMapperObj
-	err = json.Unmarshal(datajson, &models)
-	checkPanic(err)
-
+	// 兼容传递目录或者直接是文件
+	files := []string{modelPath}
+	if util.IsDir(modelPath) {
+		files = util.WalkDir(modelPath,MODEL_SUFFIX)
+	}
 	modelMappers := make(map[string]map[string]string)
-	for _,model := range models{
-		tablename := model.TABLENAME
-		queuename := model.QUEUENAME
 
-		componentKey := fmt.Sprintf("%s_%s",tablename,queuename)
-		modelMapper := make(map[string]string)
-		for _,relation := range model.REALTIONS{
-			modelMapper[relation.CN] = relation.QN
+	for _,file := range files{
+		data, err := ioutil.ReadFile(file)
+		checkPanic(err)
+		datajson := []byte(data)
+
+		var models []object.PushMapperObj
+		err = json.Unmarshal(datajson, &models)
+		checkPanic(err)
+
+
+		for _,model := range models{
+			tablename := model.TABLENAME
+			queuename := model.QUEUENAME
+
+			componentKey := fmt.Sprintf("%s_%s",tablename,queuename)
+			modelMapper := make(map[string]string)
+			for _,relation := range model.REALTIONS{
+				modelMapper[relation.CN] = relation.QN
+			}
+
+			modelMappers[componentKey] = modelMapper
 		}
-
-		modelMappers[componentKey] = modelMapper
 	}
 	return modelMappers
 }

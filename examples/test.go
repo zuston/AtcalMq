@@ -5,9 +5,13 @@ import (
 	_ "github.com/ziutek/mymysql/native" // Native engine
 
 	"fmt"
+	"github.com/zuston/AtcalMq/util"
 )
 
 func main() {
+	fmt.Println(util.IsDir("/Users/zuston/goDev/src/github.com/zuston/AtcalMq"))
+	fmt.Println(util.WalkDir("/Users/zuston/goDev/src/github.com/zuston/AtcalMq",".model"))
+	return
 	db := mysql.New("tcp", "", "127.0.0.1:3306", "root", "zuston", "todo")
 	db.Register("set names utf8")
 
