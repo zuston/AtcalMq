@@ -84,6 +84,8 @@ func NewProducerFactory(uri string, exchange string, exchangeType string, reliab
 		//todo
 	}
 
+	go cp.Handle()
+
 	return cp, nil
 }
 

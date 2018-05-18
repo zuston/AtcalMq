@@ -81,7 +81,7 @@ func init(){
 
 func main(){
 
-	cf, err := rabbitmq.NewConsumerFactory(mq_uri,exchange,exchange_type)
+	cf, err := rabbitmq.NewConsumerFactory(mq_uri,exchange,exchange_type,true)
 
 	if err!=nil {
 		panic("fail to connect to the message queue of rabbitmq")
@@ -93,10 +93,6 @@ func main(){
 		// 调试使用
 		cf.Register(*queueName,core.TestHandler)
 	}
-
-	go cf.Handle()
-	// provide the rpc service, expose the port 9898
-	rabbitmq.NewWatcher()
 
 	select {
 	}

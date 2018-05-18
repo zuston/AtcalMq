@@ -36,15 +36,11 @@ __执行 ./main 的时候，是一切默认，全部消费队列注册，开始�
 ```go
 func main(){
   // 开启一个rabbitmq的消费者实例
-  cf, err := rabbitmq.NewConsumerFactory(mq_uri,exchange,exchange_type)
+  cf, err := rabbitmq.NewConsumerFactory(mq_uri,exchange,exchange_type,true)
   // 向实例注册某个消息队列，且写入处理方法的回调
   cf.Register("ane_test",testHandler)
   // 注册多个消息队列，且用同一个回调方法
   cf.RegisterAll([]string{"ane_1","ane_2"},testHandler)
-  // 开启处理模式
-  go cf.Handle()
-  // 开始监视器rpc,主要为 console 程序提供可视化可以不加
-  rabbitmq.NewWatcher()
   
   func testHandler(queueName string, msgChan <-chan amqp.Delivery){
     for msg := range msgChan{}
@@ -56,7 +52,6 @@ __就是这么简单和清晰__  
 // 生产者
 func main(){
   pf, _ := rabbitmq.NewProducerFactory(mq_uri,exchange,exchange_type,false)
-	 go pf.Handle()
   pf.Publish("ane_push","hello world")
 }
 ```

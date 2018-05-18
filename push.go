@@ -65,7 +65,6 @@ func main(){
 	exchange := configMapper["exchange"]
 	exchange_type := configMapper["exchange_type"]
 	pf, _ := rabbitmq.NewProducerFactory(mq_uri,exchange,exchange_type,false)
-	go pf.Handle()
 
 	//duration := 10*time.Second
 	//optionPath := "./optional.model"

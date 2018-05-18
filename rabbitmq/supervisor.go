@@ -242,8 +242,6 @@ func initHttp(){
 
 
 func NewWatcher(){
-	// wechat handler queue
-	go util.NotifyHandlerQueue()
 	// 循环刷新数据
 	go Supervisor()
 

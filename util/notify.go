@@ -16,6 +16,11 @@ const(
 	EMAIL_CHANNEL
 )
 
+func init(){
+	// 初始化处理队列
+	go NotifyHandlerQueue()
+}
+
 var queueChan = make(chan string,100)
 
 var taskQueue = make(chan func(),1000)

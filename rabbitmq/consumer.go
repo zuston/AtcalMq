@@ -44,7 +44,7 @@ type RabbitConn struct {
 	channel *amqp.Channel
 }
 
-func NewConsumerFactory(url string, exchange string, exchangeType string) (*ConsumerFactory,error){
+func NewConsumerFactory(url string, exchange string, exchangeType string, isSupervisor bool) (*ConsumerFactory,error){
 	zlogger, _ := util.NewLogger(RABBITMQ_LOG_LEVEL,RABBITMQ_CONSUMER_LOGGER_PATH)
 	zlogger.SetDebug()
 
@@ -69,6 +69,14 @@ func NewConsumerFactory(url string, exchange string, exchangeType string) (*Cons
 	}
 	// dial success
 	zlogger.Debug("dial success")
+
+	// start the handle function
+	go cf.Handle()
+
+	// supervisor goroutinue
+	if isSupervisor {
+		go NewWatcher()
+	}
 
 	return cf, nil
 }
