@@ -20,6 +20,8 @@ const (
 	EXCHANGE_TYPE = "exchange_type"
 )
 
+const MAIN_LOG_PATH  = "/tmp/AneMain.log"
+
 var lloger *util.Logger
 
 var (
@@ -49,7 +51,7 @@ func init(){
 	}
 
 	// init the log instance
-	lloger, _ = util.NewLogger(util.INFO_LEVEL, "/tmp/ane.log")
+	lloger, _ = util.NewLogger(util.INFO_LEVEL,MAIN_LOG_PATH)
 	// the log status is debug state
 	lloger.SetDebug()
 

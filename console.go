@@ -20,9 +20,11 @@ var (
 	currentInfos string
 )
 
+const CONSOLE_LOG_PATH  = "/tmp/AneConsole.log"
+
 
 func init(){
-	zllogger, _ = util.NewLogger(util.DEBUG_LEVEL,"/tmp/console.log")
+	zllogger, _ = util.NewLogger(util.DEBUG_LEVEL,CONSOLE_LOG_PATH)
 	zllogger.SetDebug()
 
 	var err error

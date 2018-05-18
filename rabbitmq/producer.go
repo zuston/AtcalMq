@@ -5,9 +5,6 @@ import (
 	"github.com/streadway/amqp"
 )
 
-const (
-	LOGGER_PATH = "/tmp/aneProducer.log"
-)
 
 type MsgEntity struct {
 	queueName string
@@ -35,7 +32,7 @@ type ProducerFactory struct {
 
 func NewProducerFactory(uri string, exchange string, exchangeType string, reliable bool) (*ProducerFactory, error) {
 
-	zlloger, _ := util.NewLogger(util.DEBUG_LEVEL,LOGGER_PATH)
+	zlloger, _ := util.NewLogger(RABBITMQ_LOG_LEVEL,RABBITMQ_PRODUCER_LOGGER_PATH)
 	zlloger.SetDebug()
 
 	cp := &ProducerFactory{

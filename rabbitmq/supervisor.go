@@ -58,12 +58,12 @@ func init(){
 	// 初始化队列数组，便于curl获取
 	//queueNameContainer = make([]string,1)
 
-	configMapper,_ := util.ConfigReader("/opt/mq.cfg")
+	configMapper,_ := util.ConfigReader(ANE_CONFIG_PATH)
 	apiUsername = configMapper["username"]
 	apiPassword = configMapper["password"]
 	apiAddress = configMapper["apiaddress"]
 
-	zlloger, _ = util.NewLogger(util.DEBUG_LEVEL,"/tmp/supervisor.log")
+	zlloger, _ = util.NewLogger(RABBITMQ_LOG_LEVEL,RABBITMQ_SUPERVISOR_LOGGER_PATH)
 
 	zlloger.SetDebug()
 

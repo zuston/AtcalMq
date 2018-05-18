@@ -21,9 +21,6 @@ var queueChan = make(chan string,100)
 var taskQueue = make(chan func(),1000)
 func WechatNotify(notify string) bool{
 
-	//queueKey := fmt.Sprintf("%s:%s",strconv.Itoa(WECHAT_CHANNEL),notify)
-	//queueChan <- queueKey
-
 	taskQueue <- func() {
 		sendWechat(notify)
 	}
@@ -32,9 +29,6 @@ func WechatNotify(notify string) bool{
 
 
 func MailNotify(notify string) bool {
-	//queueKey := fmt.Sprintf("%s:%s",strconv.Itoa(EMAIL_CHANNEL),notify)
-	//queueChan <- queueKey
-
 	taskQueue <- func() {
 		sendMail(notify)
 	}
@@ -42,21 +36,6 @@ func MailNotify(notify string) bool {
 }
 
 func NotifyHandlerQueue() {
-	//for key := range queueChan {
-	//	if index := strings.LastIndex(key,":"); index!=-1 {
-	//		tag := key[0:index]
-	//		notify := key[index:len(key)]
-	//		v,_ :=strconv.Atoi(tag);
-	//		if v == WECHAT_CHANNEL {
-	//			sendWechat(notify)
-	//			continue
-	//		}
-	//
-	//		if v==EMAIL_CHANNEL {
-	//			sendMail(notify)
-	//		}
-	//	}
-	//}
 
 	for sendFunc := range taskQueue {
 		sendFunc()

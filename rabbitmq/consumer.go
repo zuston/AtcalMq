@@ -8,10 +8,6 @@ import (
 )
 
 const (
-	CONSUMER_LOGGER_PATH = "/tmp/aneRabbit.log"
-)
-
-const (
 	CONSUMER_TAG_PREFIX = "CONSUMER-"
 )
 
@@ -49,7 +45,7 @@ type RabbitConn struct {
 }
 
 func NewConsumerFactory(url string, exchange string, exchangeType string) (*ConsumerFactory,error){
-	zlogger, _ := util.NewLogger(util.DEBUG_LEVEL,CONSUMER_LOGGER_PATH)
+	zlogger, _ := util.NewLogger(RABBITMQ_LOG_LEVEL,RABBITMQ_CONSUMER_LOGGER_PATH)
 	zlogger.SetDebug()
 
 	cf := &ConsumerFactory{
@@ -233,7 +229,6 @@ func (cf *ConsumerFactory) Handle() {
 			continue
 		}
 
-		// curl -i -u sitrab:sitrab123456 http://58.215.167.31:15672/api/queues/its-test/ane_its_ai_data_centerLoad_queue
 		cf.registerConnMapper[queueName] = &RabbitConn{
 			conn:amqpConn,
 			channel:channel,

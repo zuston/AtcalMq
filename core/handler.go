@@ -10,6 +10,8 @@ import (
 	"github.com/zuston/AtcalMq/rabbitmq"
 )
 
+const HANDLER_LOG_PATH  = "/tmp/AneHandler.log"
+
 // singleton
 type HbaseConn struct{
 	Client gohbase.Client
@@ -23,7 +25,7 @@ func init(){
 	Hconn = &HbaseConn{}
 	Hconn.Client = gohbase.NewClient("slave4,slave2,slave3")
 
-	hlogger, _ = util.NewLogger(util.INFO_LEVEL,"/tmp/handler.log")
+	hlogger, _ = util.NewLogger(util.INFO_LEVEL,HANDLER_LOG_PATH)
 	hlogger.SetDebug()
 
 	// 协程池

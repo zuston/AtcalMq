@@ -27,6 +27,8 @@ const(
 	MODEL_SUFFIX = "model"
 )
 
+const PUSH_LOG_PATH  = "/tmp/AnePush.log"
+
 var(
 	duration = flag.Duration("duration",time.Minute,"please enter the push duration")
 	optionPath = flag.String("option","/opt/optional.model","the push queue column name")
@@ -43,7 +45,7 @@ func init(){
 		panic(err)
 	}
 
-	logger,err = util.NewLogger(util.DEBUG_LEVEL,"/tmp/push.log")
+	logger,err = util.NewLogger(util.DEBUG_LEVEL,PUSH_LOG_PATH)
 	if err!=nil {
 		panic("init the log error")
 	}
