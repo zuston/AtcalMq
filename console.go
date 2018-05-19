@@ -120,7 +120,7 @@ func main() {
 	initBarLabelTag := true
 	termui.Handle("/timer/1s", func(e termui.Event) {
 		//t := e.Data.(termui.EvtTimer)
-		var jv []rabbitmq.SupervisorObj
+		var jv []rabbitmq.PullSupervisorObj
 		json.Unmarshal([]byte(currentInfos),&jv)
 		if initBarLabelTag {
 			var labels []string

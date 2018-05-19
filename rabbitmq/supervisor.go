@@ -23,10 +23,22 @@ get the rabbit mq info from the different original datasource
 exposed to rpc
  */
 
-type SupervisorObj struct {
+type PullSupervisorObj struct {
 	QueueName string
 	Overstock string
 	UnitHandlerAblitity int
+	TotalHandlerCount	int64
+}
+// rpc回传 struct
+type RpcObj struct {
+	// consumer 队列状态表
+	PullSupervisorObjs []PullSupervisorObj
+	// 守护程序运行时间
+	Runtime time.Duration
+	// 消费队列数目
+	PullQueueNumber int
+	// push队列数目
+	PushQueueNumber int
 }
 
 var (
@@ -52,11 +64,18 @@ var (
 	lock *sync.Mutex
 )
 
+var (
+	// 启动时间
+	startTime time.Time
+)
+
 var zlloger *util.Logger
 
 func init(){
 	// 初始化队列数组，便于curl获取
 	//queueNameContainer = make([]string,1)
+
+	startTime = time.Now()
 
 	configMapper,_ := util.ConfigReader(ANE_CONFIG_PATH)
 	apiUsername = configMapper["username"]
@@ -116,6 +135,9 @@ func statisticNotify() {
 	util.WechatNotify(strings.Join(pushList,"\n"))
 }
 
+func getPullQueueNumber() int{
+	return len(queueNameContainer)
+}
 
 // post 调用
 func rabbitStatus(url string)(string,error){
@@ -206,16 +228,23 @@ func (w *Watcher) GetAll(tag string, result *string) error{
 }
 
 func jsonGen() (string, error){
-	var supervisorEntities []SupervisorObj
+	var rpcObj = RpcObj{}
+	var supervisorEntities []PullSupervisorObj
 	for _,v := range queueNameContainer{
-		tempSupervisorObj := SupervisorObj{
+		tempSupervisorObj := PullSupervisorObj{
 			Overstock:queueNameCountMapper[v],
 			QueueName:v,
 			UnitHandlerAblitity:queueUnitHandlerMapper[v],
+			TotalHandlerCount:statisticsContainer[v],
 		}
 		supervisorEntities = append(supervisorEntities, tempSupervisorObj)
 	}
-	b, err := jsoniter.Marshal(supervisorEntities)
+	rpcObj.PullSupervisorObjs = supervisorEntities
+	rpcObj.PullQueueNumber = getPullQueueNumber()
+	rpcObj.PushQueueNumber = 0
+	rpcObj.Runtime = time.Since(startTime)
+
+	b, err := jsoniter.Marshal(rpcObj)
 	if err!=nil {
 		zlloger.Error("json encode error : %s",err)
 		return "",err
