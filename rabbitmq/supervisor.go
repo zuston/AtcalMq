@@ -13,7 +13,6 @@ import (
 	"strconv"
 	"os/exec"
 	"bytes"
-	"io"
 	"sync"
 	"strings"
 )
@@ -24,15 +23,30 @@ exposed to rpc
  */
 
 type PullSupervisorObj struct {
+	// 队列名
+	QueueName string
+	// 积压数
+	Overstock string
+	// 单位时间处理能力
+	UnitHandlerAblitity int
+	// 24小时内处理数据量
+	TotalHandlerCount	int64
+}
+
+type PushSupervisorObj struct {
 	QueueName string
 	Overstock string
 	UnitHandlerAblitity int
-	TotalHandlerCount	int64
 }
+
 // rpc回传 struct
 type RpcObj struct {
 	// consumer 队列状态表
 	PullSupervisorObjs []PullSupervisorObj
+	// producer 队列状态表
+	PushSupervisorObjs []PushSupervisorObj
+	// 守护程序启动时间
+	StartTime string
 	// 守护程序运行时间
 	Runtime time.Duration
 	// 消费队列数目
@@ -77,6 +91,8 @@ func init(){
 
 	startTime = time.Now()
 
+	// 从上一级读取
+	// todo 最好从上一级传入，解耦
 	configMapper,_ := util.ConfigReader(ANE_CONFIG_PATH)
 	apiUsername = configMapper["username"]
 	apiPassword = configMapper["password"]
@@ -96,7 +112,12 @@ func init(){
 	return
 }
 
-func statistics(){
+// 提供给 consumer 进行注册
+func AddSupervisorQueue(queueName string){
+	queueNameContainer = append(queueNameContainer,queueName)
+}
+
+func Statistics(){
 
 	// 定时器
 	minTicker := time.NewTicker(time.Second*30*60)
@@ -167,18 +188,14 @@ func execShell(commandLine string) (string,error){
 	return out.String(),nil
 }
 
-func AddSupervisorQueue(queueName string){
-	queueNameContainer = append(queueNameContainer,queueName)
-}
-
 func Supervisor(){
+	// 分钟获取
+	//timer := time.NewTicker(time.Minute)
 	// 获取当前队列积压数据量
 	// 循环获取
 	for {
 		execCommandLine := fmt.Sprintf(`curl  -u %s:%s %s`,apiUsername,apiPassword,apiAddress)
 		jsonResp, err := execShell(execCommandLine)
-
-		//jsonResp, err := rabbitStatus(apiAddress)
 
 		if err!=nil {
 			errorFormat := fmt.Sprintf("supervisor timely got error : [%s]",err)
@@ -198,7 +215,7 @@ func Supervisor(){
 			countVInt, _ := strconv.Atoi(currentV.String())
 			queueUnitHandlerMapper[name] = originalCountInt-countVInt
 		}
-		time.Sleep(60*time.Second)
+		time.Sleep(time.Minute)
 	}
 }
 
@@ -229,6 +246,8 @@ func (w *Watcher) GetAll(tag string, result *string) error{
 
 func jsonGen() (string, error){
 	var rpcObj = RpcObj{}
+
+	// pull queue status
 	var supervisorEntities []PullSupervisorObj
 	for _,v := range queueNameContainer{
 		tempSupervisorObj := PullSupervisorObj{
@@ -239,10 +258,25 @@ func jsonGen() (string, error){
 		}
 		supervisorEntities = append(supervisorEntities, tempSupervisorObj)
 	}
+
+	// 求注册队列与获取的队列的差集
+	pushNames := differentSet(queueNameContainer,queueNameCountMapper)
+	var pushEntities []PushSupervisorObj
+	for _,pushName := range pushNames{
+		tempPush := PushSupervisorObj{
+			QueueName:pushName,
+			Overstock:queueNameCountMapper[pushName],
+			UnitHandlerAblitity:queueUnitHandlerMapper[pushName],
+		}
+		pushEntities = append(pushEntities,tempPush)
+	}
+
 	rpcObj.PullSupervisorObjs = supervisorEntities
 	rpcObj.PullQueueNumber = getPullQueueNumber()
-	rpcObj.PushQueueNumber = 0
+	rpcObj.PushQueueNumber = len(pushNames)
+	rpcObj.PushSupervisorObjs = pushEntities
 	rpcObj.Runtime = time.Since(startTime)
+	rpcObj.StartTime = startTime.Format("2006-01-02 15:04:05")
 
 	b, err := jsoniter.Marshal(rpcObj)
 	if err!=nil {
@@ -252,44 +286,46 @@ func jsonGen() (string, error){
 	return string(b),nil
 }
 
-/**
-http service
- */
-// hello world, the web server
-func GetAll(w http.ResponseWriter, req *http.Request) {
-	json, _ := jsonGen()
-	io.WriteString(w, json)
+// 差集
+func differentSet(i []string, i2 map[string]string) []string {
+	var list []string
+	sameMap := make(map[string]bool,10)
+	for _,v := range i{
+		if _,ok := i2[v];ok {
+			sameMap[v] = false
+		}
+	}
+
+	for key,_ := range i2{
+		if _,ok := sameMap[key];!ok{
+			list = append(list,key)
+		}
+	}
+	return list
 }
 
-func initHttp(){
-	http.HandleFunc("/getall", GetAll)
-	err := http.ListenAndServe(":8909", nil)
-	if err != nil {
-		zlloger.Error("ListenAndServe: ", err)
+func RpcService(){
+	watcher := new(Watcher)
+	rpc.Register(watcher)
+	rpc.HandleHTTP()
+	lhandler, err := net.Listen("tcp",RABBITMQ_SUPERVISOR_RPC_URL)
+	if err != nil{
+		zlloger.Error("listen to the URL error : %s",err)
+		return
 	}
+	zlloger.Info("Supervisor RPC listen to "+RABBITMQ_SUPERVISOR_RPC_URL)
+	http.Serve(lhandler,nil)
 }
 
 
 func NewWatcher(){
-	// 循环刷新数据
+	// 定时获取数据
 	go Supervisor()
 
-	// http service
-	go initHttp()
+	// 统计结果发送 wechat
+	go Statistics()
 
-	// 统计
-	go statistics()
-
-	// rpc 暴露接口
-	watcher := new(Watcher)
-	rpc.Register(watcher)
-	rpc.HandleHTTP()
-	lhandler, err := net.Listen("tcp",":9898")
-	if err != nil{
-		zlloger.Error("listen to the port error : %s",err)
-		return
-	}
-	zlloger.Info("Supervisor RPC listen to port : 9898")
-	http.Serve(lhandler,nil)
+	// rpc service expose
+	go RpcService()
 }
 

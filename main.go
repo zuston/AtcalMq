@@ -47,7 +47,9 @@ func init(){
 			rabbitmq.AddSupervisorQueue(v)
 		}
 		rabbitmq.NewWatcher()
-		return
+		select {
+
+		}
 	}
 
 	// init the log instance

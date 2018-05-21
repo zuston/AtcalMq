@@ -19,4 +19,7 @@ const (
 
 	// supervisor 中的配置连接文件路径
 	ANE_CONFIG_PATH = "/opt/mq.cfg"
+
+	// supervisor rpc port
+	RABBITMQ_SUPERVISOR_RPC_URL = "127.0.0.1:9898"
 )

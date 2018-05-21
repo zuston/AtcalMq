@@ -45,19 +45,20 @@ func timelyGetStatus(){
 
 func uiInit(){
 
-	pullCD,_ := initCoverData()
+	pullCD,pushCD := initCoverData()
 
 	if err := ui.Init(); err != nil {
 		panic(err)
 	}
 	defer ui.Close()
 
-
+	// 状态栏填充数据
 	consoleData := [][]string{
 		[]string{
-			"time:2018-23-83",
-			"pushQueueNumber:434",
-			"pullQueueNumber:0",
+			"",
+			"",
+			"",
+			"",
 		},
 	}
 
@@ -66,22 +67,13 @@ func uiInit(){
 	console.Rows = consoleData
 	console.FgColor = ui.ColorBlack
 	console.BgColor = ui.ColorDefault
-	console.TextAlign = ui.AlignCenter
+	console.TextAlign = ui.AlignLeft
 	console.Separator = true
 	console.Analysis()
 	console.SetSize()
 	console.BgColors[0] = ui.ColorGreen
 	console.Border = false
 	ui.Render(console)
-
-	coverData := [][]string{
-		[]string{
-			"QUEUE_NAME",
-			"STOCK",
-			"UNIT_HANDLE",
-			"TOTAL",
-		},
-	}
 
 	pull := ui.NewTable()
 	pull.Rows = pullCD
@@ -96,7 +88,7 @@ func uiInit(){
 	ui.Render(pull)
 
 	push := ui.NewTable()
-	push.Rows = coverData
+	push.Rows = pushCD
 	push.FgColor = ui.ColorWhite
 	push.BgColor = ui.ColorDefault
 	push.TextAlign = ui.AlignCenter
@@ -114,8 +106,8 @@ func uiInit(){
 			ui.NewCol(12, 0, console),
 		),
 		ui.NewRow(
-				ui.NewCol(6, 0, pull),
-				ui.NewCol(6, 0, push),
+				ui.NewCol(7, 0, pull),
+				ui.NewCol(5, 0, push),
 			))
 
 	// calculate layout
@@ -141,8 +133,8 @@ func uiInit(){
 		pullHeader := []string{
 			"QUEUE_NAME",
 			"STOCK",
-			"UNIT_HANDLE",
-			"TOTAL",
+			"UNIT_MIN_HANDLE",
+			"DAY_TOTAL",
 		}
 		pullObjs = append(pullObjs,pullHeader)
 		pull.BgColors[0] = ui.ColorRed
@@ -158,10 +150,30 @@ func uiInit(){
 		pull.Rows = pullObjs
 		ui.Render(pull)
 
+		var pushObjs [][]string
+		pushHeader := []string{
+			"QUEUE_NAME",
+			"STOCK",
+			"UNIT_MIN_HANDLE",
+		}
+		pushObjs = append(pushObjs,pushHeader)
+		push.BgColors[0] = ui.ColorRed
+		for _,pushQueueObj := range rpcObj.PushSupervisorObjs{
+			var pushObj = []string{
+				pushQueueObj.QueueName,
+				pushQueueObj.Overstock,
+				strconv.Itoa(pushQueueObj.UnitHandlerAblitity),
+			}
+			pushObjs = append(pushObjs,pushObj)
+		}
+		push.Rows = pushObjs
+		ui.Render(push)
+
 		var consoleObjs [][]string
-		runtime := rpcObj.Runtime
+		hour,min,second := convert(rpcObj.Runtime)
 		consoleObj := []string{
-			fmt.Sprintf("runTime:%d小时%d分钟%d秒",int(runtime.Hours()),int(runtime.Minutes()),int(runtime.Seconds()/60)),
+			fmt.Sprintf("start time:%s",rpcObj.StartTime),
+			fmt.Sprintf("run time:%d小时%d分钟%d秒",hour,min,second),
 			fmt.Sprintf("push queue number:%d",rpcObj.PushQueueNumber),
 			fmt.Sprintf("pull queue number:%d",rpcObj.PullQueueNumber),
 		}
@@ -171,6 +183,15 @@ func uiInit(){
 	})
 
 	ui.Loop()
+}
+
+// 将 seconds ====> hour,min,second
+func convert(duration time.Duration) (int, int, int) {
+	totalSeconds := int(duration.Seconds())
+	hour := int(duration.Hours())
+	min := (totalSeconds-hour*60*60)/60
+	second := (totalSeconds-hour*60*60-min*60)/60
+	return hour,min,second
 }
 
 // 初始化填充数据
@@ -187,10 +208,28 @@ func initCoverData() ([][]string,[][]string){
 				}
 				cover_1 = append(cover_1,data)
 			}
-			return cover_1,nil
+
+			var cover_2 [][]string
+			if rpcObj.PushQueueNumber==0 {
+				cover_2 = [][]string{
+					[]string{
+						"",
+						"",
+						"",
+					},
+				}
+			}else {
+				for i:=0;i<len(rpcObj.PushSupervisorObjs)+1;i++{
+					data := []string{
+						"","","",
+					}
+					cover_2 = append(cover_2,data)
+				}
+			}
+			return cover_1,cover_2
 		}
 		log.Println("loading.....")
-		time.Sleep(5*time.Second)
+		time.Sleep(1*time.Second)
 	}
 }
 

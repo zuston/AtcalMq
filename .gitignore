@@ -6,3 +6,5 @@ main
 console
 accuracyVerify
 hbaseBench
+target/
+deploy.sh
