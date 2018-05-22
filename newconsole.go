@@ -174,8 +174,8 @@ func uiInit(){
 		consoleObj := []string{
 			fmt.Sprintf("start time:%s",rpcObj.StartTime),
 			fmt.Sprintf("run time:%d小时%d分钟%d秒",hour,min,second),
-			fmt.Sprintf("push queue number:%d",rpcObj.PushQueueNumber),
-			fmt.Sprintf("pull queue number:%d",rpcObj.PullQueueNumber),
+			fmt.Sprintf("pushcore queue number:%d",rpcObj.PushQueueNumber),
+			fmt.Sprintf("pullcore queue number:%d",rpcObj.PullQueueNumber),
 		}
 		consoleObjs = append(consoleObjs,consoleObj)
 		console.Rows = consoleObjs

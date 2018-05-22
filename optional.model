@@ -1,6 +1,6 @@
 [
   {
-    "TABLENAME" : "user",
+    "TABLENAME" : "people",
     "QUEUENAME" : "queue",
     "REALTIONS"  : [
       {

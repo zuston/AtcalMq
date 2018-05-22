@@ -247,7 +247,7 @@ func (w *Watcher) GetAll(tag string, result *string) error{
 func jsonGen() (string, error){
 	var rpcObj = RpcObj{}
 
-	// pull queue status
+	// pullcore queue status
 	var supervisorEntities []PullSupervisorObj
 	for _,v := range queueNameContainer{
 		tempSupervisorObj := PullSupervisorObj{

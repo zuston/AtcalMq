@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/zuston/AtcalMq/util"
 	"github.com/zuston/AtcalMq/rabbitmq"
-	"github.com/zuston/AtcalMq/core"
 	"github.com/streadway/amqp"
 	"fmt"
 	"github.com/ivpusic/grpool"
@@ -13,6 +12,8 @@ import (
 	"context"
 	"log"
 	"time"
+	"github.com/zuston/AtcalMq/core/pullcore"
+	"github.com/zuston/AtcalMq/core"
 )
 
 var verificationChan chan []byte
@@ -25,19 +26,19 @@ const(
 )
 
 var linkList = []string{
-	core.EWB_NO,
-	core.SITE_ID,
-	core.VEHICLE_NO,
-	core.OPERATOR_CODE,
-	core.NEXT_SITE_ID,
+	pullcore.EWB_NO,
+	pullcore.SITE_ID,
+	pullcore.VEHICLE_NO,
+	pullcore.OPERATOR_CODE,
+	pullcore.NEXT_SITE_ID,
 }
 
 var linkTnList = map[string]string{
-	core.EWB_NO:"Link_Ewb",
-	core.SITE_ID:"Link_Site",
-	core.VEHICLE_NO:"Link_Vehicle",
-	core.OPERATOR_CODE:"Link_Operator",
-	core.NEXT_SITE_ID : "Link_Site",
+	pullcore.EWB_NO:"Link_Ewb",
+	pullcore.SITE_ID:"Link_Site",
+	pullcore.VEHICLE_NO:"Link_Vehicle",
+	pullcore.OPERATOR_CODE:"Link_Operator",
+	pullcore.NEXT_SITE_ID : "Link_Site",
 }
 
 // 验证数据从mq读取到到是否准确存储进db中,防止并发下出现问题
@@ -56,7 +57,7 @@ func main(){
 	exchange := configMapper["exchange"]
 	exchange_type := configMapper["exchange_type"]
 
-	cf, err := rabbitmq.NewConsumerFactory(mq_uri,exchange,exchange_type)
+	cf, err := rabbitmq.NewConsumerFactory(mq_uri,exchange,exchange_type,false)
 
 	if err!=nil {
 		panic("fail to connect to the message queue of rabbitmq")
@@ -73,7 +74,7 @@ func main(){
 	// 验证数据
 	for i:=0;i<N;i++{
 		msg := <-verificationChan
-		list := core.ModelGen(msg)
+		list := pullcore.ModelGen(msg)
 		for _, v := range list{
 			log.Println(v)
 			verifyContainer := make(map[string]string,5)
@@ -81,7 +82,7 @@ func main(){
 			for _,lname := range linkList{
 				linkName := strings.ToLower(lname)
 				linkRowKey, ok := v[linkName]
-				linkRowKey = core.FixRowKey(linkRowKey)
+				linkRowKey = pullcore.FixRowKey(linkRowKey)
 				if ok {
 					verifyContainer[lname] = linkRowKey
 				}
@@ -91,7 +92,7 @@ func main(){
 
 			infoOneKey := v[strings.ToLower(core.LinkKey[testQueueName])]
 
-			randomNumber := core.CacheMapper[v["hewbno"]]
+			randomNumber := pullcore.CacheMapper[v["hewbno"]]
 
 			infoOneKey = fmt.Sprintf("%s_%d",infoOneKey,randomNumber)
 
@@ -103,12 +104,12 @@ func main(){
 			for linkName,linkRowKey := range verifyContainer{
 				tableName := linkTnList[linkName]
 				cfName := testQueueName
-				if linkName==core.NEXT_SITE_ID {
+				if linkName==pullcore.NEXT_SITE_ID {
 					cfName = fmt.Sprintf("nextSite_%s",testQueueName)
 				}
 				rowkeys := []string{linkRowKey}
 
-				operatorSplitTag := linkName==core.OPERATOR_CODE
+				operatorSplitTag := linkName==pullcore.OPERATOR_CODE
 				if  operatorSplitTag {
 					rowkeys = strings.Split(linkRowKey,",")
 				}
@@ -150,7 +151,7 @@ func main(){
 // 检测存储的表和直接获取到的是否一致
 func modelCheck(i map[string]string, i2 []string) bool{
 	//fmt.Println(len(i),len(i2))
-	op,ok := i[core.OPERATOR_CODE]
+	op,ok := i[pullcore.OPERATOR_CODE]
 	if ok {
 		count := len(strings.Split(op,","))
 		fmt.Println(len(i)+count-1)
@@ -188,10 +189,10 @@ func handler(queue string, msgChan <-chan amqp.Delivery){
 		backuper.Info(string(msg.Body))
 		// 进入验证通道
 		verificationChan <- msg.Body
-		list := core.ModelGen(msg.Body)
+		list := pullcore.ModelGen(msg.Body)
 		for _,v := range list{
 			handlerCount++
-			pool.JobQueue <- core.SaveModelGen(v,queue)
+			pool.JobQueue <- pullcore.SaveModelGen(v,queue)
 		}
 	}
 }

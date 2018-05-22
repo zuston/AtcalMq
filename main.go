@@ -5,6 +5,7 @@ import (
 	"github.com/zuston/AtcalMq/core"
 	"github.com/zuston/AtcalMq/rabbitmq"
 	"flag"
+	"github.com/zuston/AtcalMq/core/pullcore"
 )
 
 // declare the variable
@@ -90,10 +91,10 @@ func main(){
 	}
 
 	if !settingConsumeQueueTag {
-		cf.RegisterAll(core.BasicInfoTableNames,core.BasicHandler)
+		cf.RegisterAll(core.BasicInfoTableNames,pullcore.BasicHandler)
 	}else {
 		// 调试使用
-		cf.Register(*queueName,core.TestHandler)
+		cf.Register(*queueName,pullcore.TestHandler)
 	}
 
 	select {

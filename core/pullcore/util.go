@@ -1,4 +1,4 @@
-package core
+package pullcore
 
 import (
 	"strings"
@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"go/types"
 	"github.com/zuston/AtcalMq/util"
+	"github.com/zuston/AtcalMq/core"
 )
 
 const (
@@ -189,7 +190,7 @@ func FixRowKey(str string) string {
 }
 
 func genCfColumnKeyName(mapper map[string][]byte, queueName string) string {
-	correspondingColumnName,ok := LinkKey[queueName]
+	correspondingColumnName,ok := core.LinkKey[queueName]
 	hlogger.Debug("[%s] columnName",correspondingColumnName)
 	// 以多版本来记录
 

@@ -105,3 +105,8 @@ var LinkKey = map[string]string{
 	QUEUE_BASIC_VEHICLELINE : "createdTime"                             ,
 	QUEUE_BASIC_PLATFORM : "uid"                                        ,
 }
+
+const(
+	MONGO_TAG = iota
+	MYSQL_TAG
+)

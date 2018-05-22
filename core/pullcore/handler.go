@@ -1,4 +1,4 @@
-package core
+package pullcore
 
 import (
 	"github.com/streadway/amqp"

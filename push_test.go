@@ -35,7 +35,7 @@ func option(){
 	pf.Publish(testQueueName,info)
 	go pf.Handle()
 
-	cf, err := rabbitmq.NewConsumerFactory(mq_uri,exchange,exchange_type)
+	cf, err := rabbitmq.NewConsumerFactory(mq_uri,exchange,exchange_type,false)
 
 	if err!=nil {
 		panic("fail to connect to the message queue of rabbitmq")
