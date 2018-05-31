@@ -23,14 +23,14 @@ func main() {
 	session.SetMode(mgo.Monotonic, true)
 
 	c := session.DB("test").C("people")
-	err = c.Insert(&Person{"id", "+55 53 8116 9639"},
-		&Person{"name", "+55 53 8402 8510"})
+	err = c.Insert(&Person{"zuston", "+233639"},
+		&Person{"ann", "+2323"})
 	if err != nil {
 		panic(err)
 	}
 
 	result := Person{}
-	err = c.Find(bson.M{"name": "Ale"}).One(&result)
+	err = c.Find(bson.M{"name": "zuston"}).One(&result)
 	if err != nil {
 		panic(err)
 	}

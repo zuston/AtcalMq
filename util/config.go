@@ -5,6 +5,7 @@ import (
 	"bufio"
 	"strings"
 	"io"
+	"gopkg.in/ini.v1"
 )
 
 // read the config file , convert to the Map[string]string
@@ -33,4 +34,20 @@ func ConfigReader(path string) (map[string]string, error){
 		mapper[key] = value
 
 	}
+}
+
+// 读取 ini 配置文件，config path && sectionName
+func NewConfigReader(path string,section string)(map[string]string, error){
+	cfg, err := ini.Load(path)
+	CheckPanic(err)
+	_, err = cfg.GetSection(section)
+	if err!=nil{
+		return nil,err
+	}
+	containerMapper := make(map[string]string)
+	allKeys := cfg.Section(section).KeyStrings()
+	for _,key := range allKeys{
+		containerMapper[key] = cfg.Section(section).Key(key).String()
+	}
+	return containerMapper,nil
 }

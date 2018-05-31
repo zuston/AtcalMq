@@ -26,8 +26,8 @@ type ConsumerFactory struct {
 	conn *amqp.Connection
 	// 注册消费队列
 	registerChan chan *Consumer
-	// 处理报错信息
-	done chan error
+	// 处理关闭信息
+	done bool
 	exchange string
 	exchangeType string
 	amqpUrl string
@@ -52,7 +52,7 @@ func NewConsumerFactory(url string, exchange string, exchangeType string, isSupe
 		zloger:zlogger,
 		conn:nil,
 		registerChan:make(chan *Consumer,20),
-		done:make(chan error,1000),
+		done:false,
 		exchange:exchange,
 		exchangeType:exchangeType,
 		amqpUrl:url,
@@ -106,6 +106,10 @@ func (cf *ConsumerFactory) RegisterAll(queueList []string,f interface{}) error{
 // close all the queue
 func (cf *ConsumerFactory) CloseAll(){
 	// todo
+	cf.done = true
+	close(cf.restartChan)
+	close(cf.registerChan)
+	cf.conn.Close()
 }
 
 // close the declared Consumer
@@ -246,7 +250,10 @@ func (cf *ConsumerFactory) Handle() {
 			// 处理数据业务流程
 			handleFunc.(func(name string,msgc <- chan amqp.Delivery))(queueName,deliveries)
 			// 结束通知,便于重启
-			cf.restartChan <- queueName
+			// 判断是否关闭通道
+			if !cf.done {
+				cf.restartChan <- queueName
+			}
 		}()
 	}
 }

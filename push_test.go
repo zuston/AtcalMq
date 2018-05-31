@@ -6,6 +6,8 @@ import (
 	"github.com/zuston/AtcalMq/util"
 	"github.com/streadway/amqp"
 	"log"
+	//"time"
+	//"time"
 )
 
 
@@ -24,17 +26,17 @@ var info = "hello world"
 
 // producer demo
 func option(){
-	testQueueName := "zuston_p"
-	configMapper, _ := util.ConfigReader("/opt/mq.cfg")
+	testQueueName := "pppp"
+	configMapper, _ := util.NewConfigReader("/opt/mq.ini","rabbitmq")
 	mq_uri := configMapper["mq_uri"]
 	exchange := configMapper["exchange"]
 	exchange_type := configMapper["exchange_type"]
 	// send the msg to producer rabbitmq
-	pf, _ := rabbitmq.NewProducerFactory(mq_uri,exchange,exchange_type,false)
+	//pf, _ := rabbitmq.NewProducerFactory(mq_uri,exchange,exchange_type,false)
 	// put the msg to channel
-	pf.Publish(testQueueName,info)
-	go pf.Handle()
-
+	//pf.Publish(testQueueName,info)
+	//go pf.Handle()
+	//time.Sleep(time.Second*10)
 	cf, err := rabbitmq.NewConsumerFactory(mq_uri,exchange,exchange_type,false)
 
 	if err!=nil {
@@ -43,7 +45,7 @@ func option(){
 
 	cf.Register(testQueueName,pushHandlerTest)
 
-	go cf.Handle()
+	//go cf.Handle()
 }
 
 

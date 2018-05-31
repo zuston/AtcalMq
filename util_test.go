@@ -31,6 +31,6 @@ func TestWechatNotify(t *testing.T) {
 
 
 func TestCofigReader(t *testing.T){
-	mapper, _ := util.ConfigReader("./mq.cfg")
+	mapper, _ := util.NewConfigReader("./mq.ini","rabbitmq")
 	fmt.Println(mapper)
 }

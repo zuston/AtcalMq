@@ -11,14 +11,38 @@ import (
 var session *mgo.Session
 
 const (
-	DATABASE  = "test"
+	DATABASE  = "ane"
+	//DATABASE  = "test"
 	DB_PUSH_TAG = "queueTime"
+
+	MONGO_CONFIG_PATH = "/opt/mq.ini"
+	MONGO_CONFIG_SECTION = "mongo"
 )
 
 func init(){
-	session, err = mgo.Dial("127.0.0.1:27017")
+	username, password := mongoIniGet()
+
+	dialInfo := &mgo.DialInfo{
+		Addrs:     []string{"127.0.0.1:27017"},
+		Direct:    false,
+		Timeout:   time.Second * 1,
+		Database:  DATABASE,
+		Source:    "admin",
+		Username:  username,
+		Password:  password,
+		PoolLimit: 4096, // Session.SetPoolLimit
+	}
+	session, err = mgo.DialWithInfo(dialInfo)
 	util.CheckPanic(err)
 	session.SetMode(mgo.Monotonic, true)
+}
+
+func mongoIniGet() (string, string) {
+	mongoConfigMapper,err := util.NewConfigReader(MONGO_CONFIG_PATH,MONGO_CONFIG_SECTION)
+	util.CheckPanic(err)
+	username := mongoConfigMapper["username"]
+	password := mongoConfigMapper["password"]
+	return username,password
 }
 
 func Mongo_Get(dbName string, convertMapper map[string]string, whereCondition string) []string {
@@ -34,14 +58,21 @@ func Mongo_Get(dbName string, convertMapper map[string]string, whereCondition st
 			bson.M{DB_PUSH_TAG: bson.M{"$gt": whereCondition}},
 			bson.M{DB_PUSH_TAG: bson.M{"$exists":false}}}}
 
+			// 空置时间过滤
+	if whereCondition=="" {
+		conditions = bson.M{DB_PUSH_TAG: bson.M{"$exists":false}}
+	}
+
+
 	iter := c.Find(conditions).Iter()
 	//_ = conditions
+
 	for iter.Next(&tmp){
 		updateOidList = append(updateOidList,tmp["_id"].(bson.ObjectId))
 		delete(tmp,"_id")
 		// key convert
-		tmpConvert := convert(tmp,convertMapper)
-		jsonStr, _ := json.Marshal(tmpConvert)
+		//tmpConvert := convert(tmp,convertMapper)
+		jsonStr, _ := json.Marshal(tmp)
 		returnList = append(returnList,string(jsonStr))
 	}
 

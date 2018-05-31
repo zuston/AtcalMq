@@ -1,39 +1,11 @@
 [
   {
     "TABLENAME" : "people",
-    "QUEUENAME" : "queue",
+    "QUEUENAME" : "people_test",
     "REALTIONS"  : [
       {
         "CN" : "id",
         "QN" : "qid"
-      },
-      {
-        "CN" : "name",
-        "QN" : "qname"
-      },
-      {
-        "CN" : "nick_name",
-        "QN" : "qnick_name"
-      },
-      {
-        "CN" : "pwd",
-        "QN" : "qpwd"
-      },
-      {
-        "CN" : "grade",
-        "QN" : "qgrade"
-      },
-      {
-        "CN" : "sex",
-        "QN" : "qsex"
-      },
-      {
-        "CN" : "teacher",
-        "QN" : "qteacher"
-      },
-      {
-        "CN" : "background",
-        "QN" : "qback"
       }
     ]
   }

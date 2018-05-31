@@ -33,8 +33,7 @@ var (
 )
 
 var (
-	configPath = "./mq.cfg"
-	configPathBackUp = "/opt/mq.cfg"
+	configPathBackUp = "/opt/mq.ini"
 )
 
 var (
@@ -62,13 +61,9 @@ func init(){
 	lloger.Info("ready to read the mq config")
 	// 测试mq账号
 	if *testTag {
-		configPath = "./tmq.cfg"
-		configPathBackUp = "/opt/tmq.cfg"
+		configPathBackUp = "/opt/tmq.ini"
 	}
-	configMapper,err := util.ConfigReader(configPath)
-	if err!=nil {
-		configMapper, _ = util.ConfigReader(configPathBackUp)
-	}
+	configMapper,_ := util.NewConfigReader(configPathBackUp,"rabbitmq")
 
 	mq_uri = configMapper[URL]
 	exchange = configMapper[EXCHANGE]

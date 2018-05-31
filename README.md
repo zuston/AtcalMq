@@ -11,7 +11,7 @@ CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build main.go  
 ### 生产者  
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build push.go  
 ### 队列控制台
-CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build console.go
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build newconsole.go
 
 # Install
 1. __如果对代码进行修改，需要配置go的开发环境__

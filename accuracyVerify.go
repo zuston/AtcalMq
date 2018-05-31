@@ -52,7 +52,7 @@ func main(){
 	hclient := gohbase.NewClient("slave4,slave2,slave3")
 
 	// 启动消费
-	configMapper, _ := util.ConfigReader("/opt/mq.cfg")
+	configMapper, _ := util.NewConfigReader("/opt/mq.cfg","rabbitmq")
 	mq_uri := configMapper["mq_uri"]
 	exchange := configMapper["exchange"]
 	exchange_type := configMapper["exchange_type"]

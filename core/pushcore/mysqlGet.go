@@ -16,9 +16,13 @@ var(
 )
 
 const(
-	mysqlDB = "todo"
+	mysqlDB = "ane"
 	mysqlUsername = "root"
-	mysqlPassword = "zuston"
+	mysqlPassword = "shacha"
+
+	//mysqlDB = "todo"
+	//mysqlUsername = "root"
+	//mysqlPassword = "zuston"
 )
 
 

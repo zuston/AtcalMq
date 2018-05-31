@@ -93,7 +93,7 @@ func init(){
 
 	// 从上一级读取
 	// todo 最好从上一级传入，解耦
-	configMapper,_ := util.ConfigReader(ANE_CONFIG_PATH)
+	configMapper,_ := util.NewConfigReader(ANE_CONFIG_PATH,"console")
 	apiUsername = configMapper["username"]
 	apiPassword = configMapper["password"]
 	apiAddress = configMapper["apiaddress"]
