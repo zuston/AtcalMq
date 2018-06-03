@@ -29,6 +29,7 @@ __执行 ./pull 的时候，是一切默认，全部消费队列注册，开始�
 本框架主要有两个地方的配置文件，且自带默认地址。
 1. 关于消息队列的配置问题，生产环境位置为 /opt/mq.ini, 测试环境位置即为当前代码的根目录。在此代码中不含有，已被 .gitignore 了。具体配置请参见服务器的 /opt 下的位置。
 2. 关于 push 信息的 map 配置问题。环境位置均为 /opt 下，默认名字均可在push代码中自定义。在此代码中可见，格式类似于 optional.model文件中。
+3. 关于 pullcore handler 中的 hbase 多集群备份的配置默认为 /opt/hbase.ini 文件中写明，参见 cluster 下的配置。只需要提供 zookeeper 的节点字符串。
 
 # Architecture
 `golang`新手，对`golang`的编程范式还不够。所以设计方面还需要提升。主要讲一个`consumer`这一侧的`rabbitmq`的消费调用。  
