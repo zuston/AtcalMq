@@ -3,7 +3,6 @@ package pullcore
 import (
 	"strings"
 	"fmt"
-	"github.com/json-iterator/go"
 	"github.com/tsuna/gohbase/hrpc"
 	"context"
 	"sync"
@@ -33,14 +32,6 @@ func init(){
 
 	CacheMapper = make(map[string]int64,100)
 }
-func GetQueueNameFromConsumerTag(s string) string {
-	index := strings.Index(s,"-")
-	return s[index+1:]
-}
-func SetConsumerTag(queueName string) string{
-	return fmt.Sprintf("%s%s",CONSUMER_TAG_PREFIX,queueName)
-}
-
 
 func UidGen() (string,int64){
 	r := rand.New(rand.NewSource(randomSource()))
@@ -72,12 +63,15 @@ const(
 	EWB_NO = "EwbNo"
 	SITE_ID = "SiteId"
 	VEHICLE_NO =	"VehicleNo"
+	CAR_NO = "carNo"
 	OPERATOR_CODE =	"OperatorCode"
 	NEXT_SITE_ID = "NextSiteId"
 )
 
 // 生成存储model
-func SaveModelGen(object map[string]string, queue string) func(){
+func SaveModelGen(object map[string]string, queue string, hconn *HbaseConn) func(){
+
+	currentHbaseConnection_Status := hconn.Name
 	
 	// 人，站点，车，货
 	// 站点有进出
@@ -86,6 +80,7 @@ func SaveModelGen(object map[string]string, queue string) func(){
 		EWB_NO,
 		SITE_ID,
 		VEHICLE_NO,
+		CAR_NO,
 		OPERATOR_CODE,
 
 		NEXT_SITE_ID,
@@ -96,6 +91,8 @@ func SaveModelGen(object map[string]string, queue string) func(){
 		EWB_NO:"Link_Ewb",
 		SITE_ID:"Link_Site",
 		VEHICLE_NO:"Link_Vehicle",
+		CAR_NO:"Link_Vehicle",
+
 		OPERATOR_CODE:"Link_Operator",
 
 		NEXT_SITE_ID : "Link_Site",
@@ -123,12 +120,12 @@ func SaveModelGen(object map[string]string, queue string) func(){
 		// 基础信息--putrequest
 		biPutRequest, err := hrpc.NewPutStr(context.Background(),basicInfoTn,basicInfoUid,basicInfoCfMapper)
 		if err!=nil {
-			hlogger.Error("[%s] bi build hrpc error : %s",queue,err)
+			hlogger.Error("[%s] bi build [%s] hrpc error : %s",queue,currentHbaseConnection_Status,err)
 			return
 		}
-		_, err = Hconn.Client.Put(biPutRequest)
+		_, err = hconn.Client.Put(biPutRequest)
 		if err!=nil {
-			hlogger.Error("[%s] bi hbase put error : %s",queue,err)
+			hlogger.Error("[%s] bi hbase [%s] put error : %s",queue,currentHbaseConnection_Status,err)
 			return
 		}
 
@@ -157,12 +154,12 @@ func SaveModelGen(object map[string]string, queue string) func(){
 					liCfMapper := map[string]map[string][]byte{linkCfName:liMapper}
 					linkPutReq, err := hrpc.NewPutStr(context.Background(),linkTnList[v],lrk,liCfMapper)
 					if err!=nil {
-						hlogger.Error("[%s] link [%s] build hrpc error : %s",queue,v,err)
+						hlogger.Error("[%s] link [%s] build [%s] hrpc error : %s",queue,v,currentHbaseConnection_Status,err)
 						continue
 					}
-					_, err = Hconn.Client.Put(linkPutReq)
+					_, err = hconn.Client.Put(linkPutReq)
 					if err!=nil {
-						hlogger.Error("[%s] link [%s] hbase put error : %s",queue,v,err)
+						hlogger.Error("[%s] link [%s] hbase [%s] put error : %s",queue,v,currentHbaseConnection_Status,err)
 						continue
 					}
 				}
@@ -202,35 +199,6 @@ func genCfColumnKeyName(mapper map[string][]byte, queueName string) string {
 		return time.Now().Format("2006-01-02 15:04:05")
 	}
 	return string(mapper[strings.ToLower(correspondingColumnName)])
-}
-
-// original parser
-func ModelMapperGen(object interface{}) map[string][]byte{
-	marshal, _ := jsoniter.Marshal(object)
-	mlen := len(string(marshal))
-	jsonLine := string(marshal)[1:mlen-1]
-	basicDataMapper := make(map[string][]byte)
-	kvArr := strings.Split(string(jsonLine),`,"`)
-	for i,v := range kvArr{
-		index := strings.Index(v,":")
-		if index<=-1 {
-			continue
-		}
-		// 去除前缀
-		key := v[:index-1]
-		if i==0 {
-			key = v[1:index-1]
-		}
-		// 判断是否有前缀
-		value := v[index+1:]
-		if strings.Contains(value,`"`) {
-			value = value[1:len(value)-1]
-		}
-		// 全部改成小写
-		basicDataMapper[strings.ToLower(key)] = []byte(value)
-	}
-
-	return basicDataMapper
 }
 
 func ModelGen(jsonByte []byte) []map[string]string{
@@ -273,79 +241,3 @@ func ModelGen(jsonByte []byte) []map[string]string{
 	return retArr
 }
 
-func SaveModel(putMapper map[string][]byte,queue string)func(){
-	linkList := []string{
-		EWB_NO,
-		SITE_ID,
-		VEHICLE_NO,
-		OPERATOR_CODE,
-
-		NEXT_SITE_ID,
-	}
-
-	// linkTableNameList
-	linkTnList := map[string]string{
-		EWB_NO:"Link_Ewb",
-		SITE_ID:"Link_Site",
-		VEHICLE_NO:"Link_Vehicle",
-		OPERATOR_CODE:"Link_Operator",
-
-		NEXT_SITE_ID : "Link_Site",
-	}
-
-	// 基础信息存储 model map
-	basicInfoMapper := putMapper
-	// 基础信息--columnFamily
-	basicInfoCf := "basic"
-	// 基础信息--tableName
-	basicInfoTn := queue
-	// 基础信息--cf 和 model
-	basicInfoCfMapper := map[string]map[string][]byte{basicInfoCf:basicInfoMapper}
-	// 基础信息--uid----rowkey
-	basicInfoUid,_ := UidGen()
-
-	return func() {
-		// 基础信息--putrequest
-		biPutRequest, err := hrpc.NewPutStr(context.Background(),basicInfoTn,basicInfoUid,basicInfoCfMapper)
-		if err!=nil {
-			hlogger.Error("[%s] bi build hrpc error : %s",queue,err)
-			return
-		}
-		_, err = Hconn.Client.Put(biPutRequest)
-		if err!=nil {
-			hlogger.Error("[%s] bi hbase put error : %s",queue,err)
-			return
-		}
-
-		// 关联信息
-		for _,v := range linkList{
-			if linkrowKey,ok := basicInfoMapper[v]; ok {
-				linkrowKeys := []string{string(linkrowKey)}
-				// 操作者有多个
-				if v==OPERATOR_CODE {
-					linkrowKeys = strings.Split(string(linkrowKey),",")
-				}
-
-				for _,lrk := range linkrowKeys{
-					// linkInfoMapper
-					liMapper := map[string][]byte{"uid":[]byte(basicInfoUid)}
-					linkCfName := queue
-					if v==NEXT_SITE_ID {
-						linkCfName = fmt.Sprintf("%s_%s","nextSite",linkCfName)
-					}
-					liCfMapper := map[string]map[string][]byte{linkCfName:liMapper}
-					linkPutReq, err := hrpc.NewPutStr(context.Background(),linkTnList[v],lrk,liCfMapper)
-					if err!=nil {
-						hlogger.Error("[%s] link [%s] build hrpc error : %s",queue,v,err)
-						continue
-					}
-					_, err = Hconn.Client.Put(linkPutReq)
-					if err!=nil {
-						hlogger.Error("[%s] link [%s] hbase put error : %s",queue,v,err)
-						continue
-					}
-				}
-			}
-		}
-	}
-}
