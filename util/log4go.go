@@ -82,7 +82,7 @@ type LLogger struct {
 }
 
 /**获取日志对象**/
-func New() *LLogger {
+func NewLog4Go() *LLogger {
 	this := &LLogger{}
 	this.buf = &bytes.Buffer{}
 	this.mu_buf = new(sync.Mutex)
@@ -571,7 +571,7 @@ func getNowFormDate(form string) *time.Time {
 
 //==================================================================测试用例
 func Test() {
-	logg := New()
+	logg := NewLog4Go()
 	logg.SetType(1)
 	logg.SetRollingNormal("./logs", "logg")
 	logg.Println("hello world!")

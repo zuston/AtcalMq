@@ -120,7 +120,7 @@ func SaveModelGen(object map[string]string, queue string, hconnName string) func
 			hlogger.Error("[%s] bi build [%s] hrpc error : %s",queue,currentHbaseConnection_Status,err)
 			return
 		}
-		_, err = testConn.Client.Put(biPutRequest)
+		_, err = singleConn.Client.Put(biPutRequest)
 		if err!=nil {
 			hlogger.Error("[%s] bi hbase [%s] put error : %s",queue,currentHbaseConnection_Status,err)
 			return
@@ -155,7 +155,7 @@ func SaveModelGen(object map[string]string, queue string, hconnName string) func
 						hlogger.Error("[%s] link [%s] build [%s] hrpc error : %s",queue,v,currentHbaseConnection_Status,err)
 						continue
 					}
-					_, err = testConn.Client.Put(linkPutReq)
+					_, err = singleConn.Client.Put(linkPutReq)
 					if err!=nil {
 						hlogger.Error("[%s] link [%s] hbase [%s] put error : %s",queue,v,currentHbaseConnection_Status,err)
 						continue

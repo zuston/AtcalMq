@@ -12,6 +12,8 @@ import (
 
 const HANDLER_LOG_PATH  = "/tmp/AneHandler.log"
 const HBASE_INI_PATH = "/opt/hbase.ini"
+// 数据备份路径点
+const BACKUPER_PATH = "/opt/aneBackup"
 
 
 // singleton
@@ -25,8 +27,8 @@ var HconnContainersMapper map[string]*HbaseConn
 
 var hlogger *util.Logger
 
-// 单个传递
-var testConn *HbaseConn
+// 单个传递,目前采用的方式
+var singleConn *HbaseConn
 
 func InitHconn(){
 
@@ -51,9 +53,16 @@ func InitHconn(){
 		HconnContainersMapper["development"] = devConn
 	}
 
-	fmt.Println(HconnContainersMapper)
+	singleConn = proHconn
+}
 
-	testConn = proHconn
+
+// 实例化备份的 backuper
+func instanceBackerUper(queueName string) *util.LLogger{
+	backuper := util.NewLog4Go()
+	backuper.SetType(1)
+	backuper.SetRollingDaily(BACKUPER_PATH,queueName)
+	return backuper
 }
 
 func init(){
@@ -69,7 +78,8 @@ func init(){
 
 func BasicHandler(queue string, msgChan <-chan amqp.Delivery){
 	logPath := fmt.Sprintf("/tmp/backup/%s.backup",queue)
-	backuper,_ := util.NewLogger(util.INFO_LEVEL,logPath)
+	oldBackuper,_ := util.NewLogger(util.INFO_LEVEL,logPath)
+	newBackuper := instanceBackerUper(queue)
 
 	pool := grpool.NewPool(100, 1000)
 	defer pool.Release()
@@ -81,7 +91,8 @@ func BasicHandler(queue string, msgChan <-chan amqp.Delivery){
 	for msg := range msgChan{
 		msg.Ack(true)
 
-		backuper.Info(string(msg.Body))
+		oldBackuper.Info(string(msg.Body))
+		newBackuper.Println(string(msg.Body))
 		list := ModelGen(msg.Body)
 		for _,v := range list{
 			// 统计埋点
