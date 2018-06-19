@@ -1,4 +1,4 @@
-package main
+package script
 
 import (
 	"github.com/zuston/AtcalMq/util"
@@ -30,7 +30,6 @@ func init(){
 }
 
 // 备份数据补足入库代码
-
 func main() {
 	filterFilesList := filterFiles("/tmp/backup","backup_2018_6_4","backup_2018_6_3")
 
