@@ -25,9 +25,12 @@ var HconnContainersMapper map[string]*HbaseConn
 
 var hlogger *util.Logger
 
+// 单个传递
+var testConn *HbaseConn
+
 func InitHconn(){
 
-	HconnContainersMapper := make(map[string]*HbaseConn)
+	HconnContainersMapper = make(map[string]*HbaseConn)
 
 	productionZkMapper,err := util.NewConfigReader(HBASE_INI_PATH,"production")
 	util.CheckPanic(err)
@@ -49,6 +52,8 @@ func InitHconn(){
 	}
 
 	fmt.Println(HconnContainersMapper)
+
+	testConn = proHconn
 }
 
 func init(){
@@ -71,6 +76,8 @@ func BasicHandler(queue string, msgChan <-chan amqp.Delivery){
 
 	hlogger.Info("[%s] enter the handler",queue)
 
+	hlogger.Debug("HconnContainersMapper len is [%d]",len(HconnContainersMapper))
+
 	for msg := range msgChan{
 		msg.Ack(true)
 
@@ -79,8 +86,8 @@ func BasicHandler(queue string, msgChan <-chan amqp.Delivery){
 		for _,v := range list{
 			// 统计埋点
 			rabbitmq.StatisticsChan <- queue
-			for _, hconn := range HconnContainersMapper{
-				pool.JobQueue <- SaveModelGen(v,queue,hconn)
+			for name, _ := range HconnContainersMapper{
+				pool.JobQueue <- SaveModelGen(v,queue,name)
 			}
 		}
 	}
@@ -107,14 +114,9 @@ func TestHandler(queue string, msgChan <-chan amqp.Delivery){
 			hlogger.Debug("+++[%s] handle one",queue)
 			// 统计埋点
 			rabbitmq.StatisticsChan <- queue
-			pool.JobQueue <- SaveModelGen(v,queue,HconnContainersMapper["production"])
+			pool.JobQueue <- SaveModelGen(v,queue,"production")
 
-			for key,value := range v{
-				hlogger.Info("%s=%s",key,string(value))
-			}
-			return
 		}
-		return
 	}
 }
 

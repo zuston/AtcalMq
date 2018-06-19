@@ -89,7 +89,7 @@ func main(){
 		cf.RegisterAll(core.BasicInfoTableNames,pullcore.BasicHandler)
 	}else {
 		// 调试使用
-		cf.Register(*queueName,pullcore.TestHandler)
+		cf.Register(*queueName,pullcore.BasicHandler)
 	}
 
 	select {

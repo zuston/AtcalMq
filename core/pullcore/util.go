@@ -14,10 +14,6 @@ import (
 	"github.com/zuston/AtcalMq/core"
 )
 
-const (
-	CONSUMER_TAG_PREFIX = "CONSUMER-"
-)
-
 var lock *sync.Mutex
 var randSeek = int64(1)
 
@@ -69,8 +65,9 @@ const(
 )
 
 // 生成存储model
-func SaveModelGen(object map[string]string, queue string, hconn *HbaseConn) func(){
+func SaveModelGen(object map[string]string, queue string, hconnName string) func(){
 
+	hconn := HconnContainersMapper[hconnName]
 	currentHbaseConnection_Status := hconn.Name
 	
 	// 人，站点，车，货
@@ -100,7 +97,7 @@ func SaveModelGen(object map[string]string, queue string, hconn *HbaseConn) func
 
 	// 基础信息存储 model map,似乎是多余的
 	//basicInfoMapper := ModelMapperGen(object)
-	basicInfoMapper := v2Byte(object)
+	basicInfoMapper := V2Byte(object)
 	for key,value := range basicInfoMapper{
 		hlogger.Debug("change [%s]=[%s]",key,string(value))
 	}
@@ -123,7 +120,7 @@ func SaveModelGen(object map[string]string, queue string, hconn *HbaseConn) func
 			hlogger.Error("[%s] bi build [%s] hrpc error : %s",queue,currentHbaseConnection_Status,err)
 			return
 		}
-		_, err = hconn.Client.Put(biPutRequest)
+		_, err = testConn.Client.Put(biPutRequest)
 		if err!=nil {
 			hlogger.Error("[%s] bi hbase [%s] put error : %s",queue,currentHbaseConnection_Status,err)
 			return
@@ -132,7 +129,8 @@ func SaveModelGen(object map[string]string, queue string, hconn *HbaseConn) func
 		// 关联信息
 		for _,v := range linkList{
 			hlogger.Debug("[%s] find the mapper value : [%s]",strings.ToLower(v),basicInfoMapper[strings.ToLower(v)])
-			if linkrowKey,ok := basicInfoMapper[strings.ToLower(v)]; ok {
+
+			if linkrowKey,ok := basicInfoMapper[strings.ToLower(v)]; ok && filterLinkRowKey(linkrowKey) {
 				linkrowKeys := []string{string(linkrowKey)}
 				// 操作者有多个
 				if v==OPERATOR_CODE {
@@ -157,7 +155,7 @@ func SaveModelGen(object map[string]string, queue string, hconn *HbaseConn) func
 						hlogger.Error("[%s] link [%s] build [%s] hrpc error : %s",queue,v,currentHbaseConnection_Status,err)
 						continue
 					}
-					_, err = hconn.Client.Put(linkPutReq)
+					_, err = testConn.Client.Put(linkPutReq)
 					if err!=nil {
 						hlogger.Error("[%s] link [%s] hbase [%s] put error : %s",queue,v,currentHbaseConnection_Status,err)
 						continue
@@ -168,8 +166,12 @@ func SaveModelGen(object map[string]string, queue string, hconn *HbaseConn) func
 	}
 }
 
+func filterLinkRowKey(bytes []byte) bool{
+	return (fmt.Sprintf("%s",bytes)!="/") && len(string(bytes))>=1
+}
+
 // 转成 value 为字节数组的形式
-func v2Byte(i map[string]string) map[string][]byte {
+func V2Byte(i map[string]string) map[string][]byte {
 	transferMapper := make(map[string][]byte,len(i))
 	for k,v := range i{
 		transferMapper[k] = []byte(v)
@@ -197,6 +199,8 @@ func genCfColumnKeyName(mapper map[string][]byte, queueName string) string {
 	if !ok || correspondingColumnName=="uid" || string(mapper[strings.ToLower(correspondingColumnName)])==""{
 		// 设置接收的当前时间
 		return time.Now().Format("2006-01-02 15:04:05")
+		// 备份数据固定时间
+		//return ("2018-06-04 23:00:00")
 	}
 	return string(mapper[strings.ToLower(correspondingColumnName)])
 }

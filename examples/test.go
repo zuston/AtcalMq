@@ -6,9 +6,22 @@ import (
 
 	"fmt"
 	"github.com/zuston/AtcalMq/util"
+	"github.com/zuston/AtcalMq/core/pullcore"
 )
 
 func main() {
+	a := "\\"
+	fmt.Println(a!="\\")
+	return
+	line := `[{"dataType":2,"ewbNo":"300191790928","ewbsListNo":"212718313218061701","hewbNo":"30019179092800140010","nextSiteCode":"0287123","nextSiteId":18313,"operatorCode":"028656,081370","platformCode":"199","scanMan":"028656","scanTime":"2018-06-17 20:56:29","scanType":1,"siteCode":"0282000","siteId":2127,"volume":0.07,"weight":21.79},{"dataType":2,"ewbNo":"300191790928","ewbsListNo":"212718313218061701","hewbNo":"30019179092800140002","nextSiteCode":"0287123","nextSiteId":18313,"operatorCode":"028656,081370","platformCode":"199","scanMan":"028656","scanTime":"2018-06-17 20:56:29","scanType":1,"siteCode":"0282000","siteId":2127,"volume":0.07,"weight":21.79},{"dataType":2,"ewbNo":"300191790928","ewbsListNo":"212718313218061701","hewbNo":"30019179092800140006","nextSiteCode":"0287123","nextSiteId":18313,"operatorCode":"028656,081370","platformCode":"199","scanMan":"028656","scanTime":"2018-06-17 20:56:30","scanType":1,"siteCode":"0282000","siteId":2127,"volume":0.07,"weight":21.79},{"dataType":2,"ewbNo":"300191790928","ewbsListNo":"212718313218061701","hewbNo":"30019179092800140007","nextSiteCode":"0287123","nextSiteId":18313,"operatorCode":"028656,081370","platformCode":"199","scanMan":"028656","scanTime":"2018-06-17 20:56:32","scanType":1,"siteCode":"0282000","siteId":2127,"volume":0.07,"weight":21.79},{"dataType":2,"ewbNo":"300191790928","ewbsListNo":"212718313218061701","hewbNo":"30019179092800140012","nextSiteCode":"0287123","nextSiteId":18313,"operatorCode":"028656,081370","platformCode":"199","scanMan":"028656","scanTime":"2018-06-17 20:56:32","scanType":1,"siteCode":"0282000","siteId":2127,"volume":0.07,"weight":21.79},{"dataType":2,"ewbNo":"300191790928","ewbsListNo":"212718313218061701","hewbNo":"30019179092800140001","nextSiteCode":"0287123","nextSiteId":18313,"operatorCode":"028656,081370","platformCode":"199","scanMan":"028656","scanTime":"2018-06-17 20:56:33","scanType":1,"siteCode":"0282000","siteId":2127,"volume":0.07,"weight":21.79},{"dataType":2,"ewbNo":"300191790928","ewbsListNo":"212718313218061701","hewbNo":"30019179092800140011","nextSiteCode":"0287123","nextSiteId":18313,"operatorCode":"028656,081370","platformCode":"199","scanMan":"028656","scanTime":"2018-06-17 20:56:34","scanType":1,"siteCode":"0282000","siteId":2127,"volume":0.07,"weight":21.79}]`
+	mappers := (pullcore.ModelGen([]byte(line)))
+	for _, mapper := range mappers{
+		cmapper := pullcore.V2Byte(mapper)
+		v, ok := cmapper["vehicleno"]
+		fmt.Println(v,ok)
+	}
+	return
+
 	fmt.Println(util.IsDir("/Users/zuston/goDev/src/github.com/zuston/AtcalMq"))
 	fmt.Println(util.WalkDir("/Users/zuston/goDev/src/github.com/zuston/AtcalMq",".model"))
 	return
