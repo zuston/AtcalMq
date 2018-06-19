@@ -14,6 +14,10 @@ import (
 	"github.com/zuston/AtcalMq/core"
 )
 
+const ERROR_INSERT_PATH = "/opt/aneError"
+
+var errorLogger *util.LLogger
+
 var lock *sync.Mutex
 var randSeek = int64(1)
 
@@ -27,6 +31,10 @@ func init(){
 	clientLock = &sync.Mutex{}
 
 	CacheMapper = make(map[string]int64,100)
+
+	errorLogger = util.NewLog4Go()
+	errorLogger.SetType(1)
+	errorLogger.SetRollingDaily(ERROR_INSERT_PATH,"errorline")
 }
 
 func UidGen() (string,int64){
@@ -69,7 +77,10 @@ func SaveModelGen(object map[string]string, queue string, hconnName string) func
 
 	hconn := HconnContainersMapper[hconnName]
 	currentHbaseConnection_Status := hconn.Name
-	
+
+	convertInfo,err := json.Marshal(object)
+	util.CheckErr(err)
+
 	// 人，站点，车，货
 	// 站点有进出
 	// operatorCode 以 ","为分割
@@ -123,6 +134,7 @@ func SaveModelGen(object map[string]string, queue string, hconnName string) func
 		_, err = singleConn.Client.Put(biPutRequest)
 		if err!=nil {
 			hlogger.Error("[%s] bi hbase [%s] put error : %s",queue,currentHbaseConnection_Status,err)
+			errorBackup(queue,"basic",string(convertInfo))
 			return
 		}
 
@@ -158,12 +170,24 @@ func SaveModelGen(object map[string]string, queue string, hconnName string) func
 					_, err = singleConn.Client.Put(linkPutReq)
 					if err!=nil {
 						hlogger.Error("[%s] link [%s] hbase [%s] put error : %s",queue,v,currentHbaseConnection_Status,err)
+						errorBackup(queue,v,string(convertInfo))
 						continue
 					}
 				}
 			}
 		}
 	}
+}
+
+func errorBackup(queueName string,savePeriod string,info string){
+	errorLogger.Println(
+		fmt.Sprintf(
+			"%s\t%s\t%s",
+			queueName,
+			savePeriod,
+			string(info),
+		),
+	)
 }
 
 func filterLinkRowKey(bytes []byte) bool{
