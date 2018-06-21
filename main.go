@@ -30,6 +30,7 @@ var (
 	showTag = flag.Bool("show",false,"just open the rpc, not consume the data")
 	queueName = flag.String("queue","all","just set the test queue consume")
 	debugTag = flag.Bool("debug",false,"set the log output level")
+	backuperTag = flag.Bool("backup",false,"close the backup")
 )
 
 var (
@@ -64,6 +65,9 @@ func init(){
 		configPathBackUp = "/opt/tmq.ini"
 	}
 	configMapper,_ := util.NewConfigReader(configPathBackUp,"rabbitmq")
+	if *backuperTag {
+		configMapper,_ = util.NewConfigReader(configPathBackUp,"amqp")
+	}
 
 	mq_uri = configMapper[URL]
 	exchange = configMapper[EXCHANGE]
@@ -85,11 +89,16 @@ func main(){
 		panic("fail to connect to the message queue of rabbitmq")
 	}
 
-	if !settingConsumeQueueTag {
+	if !settingConsumeQueueTag && !*backuperTag {
 		cf.RegisterAll(core.BasicInfoTableNames,pullcore.BasicHandler)
-	}else {
+	}else if !*backuperTag {
 		// 调试使用
 		cf.Register(*queueName,pullcore.BasicHandler)
+	}
+
+	// 备份队列处理
+	if *backuperTag{
+		cf.RegisterAll(core.MultiRelationSavingTableNames,pullcore.MultiSavingHandler)
 	}
 
 	select {
