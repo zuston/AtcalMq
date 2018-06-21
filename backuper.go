@@ -10,7 +10,10 @@ import (
 	"bufio"
 	"fmt"
 	"time"
+	"github.com/zuston/AtcalMq/rabbitmq"
 )
+
+// curl -u ane:ane1106 http://202.120.117.179:15672/api/queues/its-pds
 
 //const BACKUPER_DEFAULT_PATH = "/opt/aneBackup"
 const BACKUPER_DEFAULT_PATH = "/temp/"
@@ -18,22 +21,39 @@ const BACKUPER_DEFAULT_PATH = "/temp/"
 // 备份通道
 var infoChannel chan backuperStruct
 
+const (
+	MQ_SECTION = "amqp"
+	MQ_URL = "mq_uri"
+	MQ_EXCHANGE = "exchange"
+	MQ_TYPE = "exchange_type"
+)
+
 
 var (
 	backuperPath = flag.String("path",BACKUPER_DEFAULT_PATH,"choose the backuper path")
 	// 日期之间以 "," 来进行分割
 	filterSuffix = flag.String("filter","","choose the filter backuper path suffix")
+	// mq 配置文件位置
+	mqConfig = flag.String("config","/opt/mq.ini","enter the rabbitmq backuper config file file position")
 )
 
 var barrier sync.WaitGroup
+
+var backupPusher *rabbitmq.ProducerFactory
 
 
 func init(){
 	flag.Parse()
 	infoChannel = make(chan backuperStruct,1000)
+
+	mqConfigs, err := util.NewConfigReader(*mqConfig,MQ_SECTION)
+	backupPusher, err = rabbitmq.NewProducerFactory(mqConfigs[MQ_URL],mqConfigs[MQ_EXCHANGE],mqConfigs[MQ_TYPE],false)
+	util.CheckPanic(err)
 }
 
 func main(){
+	//pushMQ()
+	//return
 	//testInc()
 	//
 	//return
@@ -42,6 +62,7 @@ func main(){
 	filterFiles := filter(*backuperPath,strings.Split(*filterSuffix,","))
 	log.Printf("current filter list is : [%s]",filterFiles)
 
+	go channelHandler()
 	goroutineReader(filterFiles)
 	select {
 
@@ -82,7 +103,7 @@ func goroutineReader(files []string) {
 				}
 			}
 			endTime := time.Now()
-			fmt.Printf("%s reading cost:%s\n",queueName,endTime.Sub(startTime))
+			fmt.Printf("[%s] reading cost : [%s]\n",queueName,endTime.Sub(startTime))
 		}()
 	}
 	log.Println("waiting reading the files")
@@ -90,7 +111,18 @@ func goroutineReader(files []string) {
 
 }
 
+func channelHandler(){
+	log.Println("start consuming the data....")
+	for infoStruct := range infoChannel{
+		queueName := infoStruct.queueName
+		info := infoStruct.info
+		backupPusher.Publish(queueName,info)
+	}
+}
 
+/**
+功能性函数
+ */
 func parse(filePath string) (string, string) {
 	arrs := strings.Split(filePath,".")
 	return arrs[0],arrs[2]
@@ -124,10 +156,22 @@ func readLine(r *bufio.Reader) (string, error) {
 }
 
 
-// 测试程序
+/**
+	测试程序
+  */
 func testInc(){
 	files := filter("/temp",[]string{"2018-06-19"})
 	log.Println(files)
-
 }
+
+func pushMQ(){
+	pf, _ := rabbitmq.NewProducerFactory("amqp://ane:ane1106@202.120.117.179:5672/its-pds","test_exchange","direct",false)
+	for i:=1;i<1000;i++{
+		pf.Publish("test_queue","hello world")
+	}
+	select {
+
+	}
+}
+
 

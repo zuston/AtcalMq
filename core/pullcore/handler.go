@@ -13,7 +13,12 @@ import (
 const HANDLER_LOG_PATH  = "/tmp/AneHandler.log"
 const HBASE_INI_PATH = "/opt/hbase.ini"
 // 数据备份路径点
-const BACKUPER_PATH = "/opt/aneBackup"
+const BACKUPER_PATH = "/opt/aneBackup/"
+
+const (
+	POOL_WORK_NUMBER = 100
+	POOL_QUEUE_LEN = 1000
+)
 
 
 // singleton
@@ -65,6 +70,7 @@ func instanceBackerUper(queueName string) *util.LLogger{
 	return backuper
 }
 
+// 一些配置参数启动
 func init(){
 	InitHconn()
 
@@ -76,6 +82,9 @@ func init(){
 	runtime.GOMAXPROCS(numCpus)
 }
 
+/**
+最基础的数据存储函数
+ */
 func BasicHandler(queue string, msgChan <-chan amqp.Delivery){
 	logPath := fmt.Sprintf("/tmp/backup/%s.backup",queue)
 	oldBackuper,_ := util.NewLogger(util.INFO_LEVEL,logPath)
@@ -105,7 +114,9 @@ func BasicHandler(queue string, msgChan <-chan amqp.Delivery){
 }
 
 
-// 调试 handler 示例代码
+/**
+	调试 handler 示例代码
+  */
 func TestHandler(queue string, msgChan <-chan amqp.Delivery){
 	logPath := fmt.Sprintf("/tmp/backup/%s.backup",queue)
 	backuper,_ := util.NewLogger(util.DEBUG_LEVEL,logPath)
@@ -132,6 +143,23 @@ func TestHandler(queue string, msgChan <-chan amqp.Delivery){
 }
 
 
+/**
+	新数据存储结构(二元组关系)存储模型
+ */
+ func MultiSavingHandler(qn string, msgChan <- chan amqp.Delivery){
+	 pool := grpool.NewPool(POOL_WORK_NUMBER, POOL_QUEUE_LEN)
+	 defer pool.Release()
+	 hlogger.Info("processing the multi saving model handler...")
+
+	 for msg := range msgChan{
+	 	msg.Ack(false)
+	 	infos := ModelGen(msg.Body)
+	 	for _, info := range infos{
+	 		rabbitmq.StatisticsChan <- qn
+	 		pool.JobQueue <- MultiSavingModel(qn,info)
+		}
+	 }
+ }
 
 
 

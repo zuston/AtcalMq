@@ -15,7 +15,7 @@ const (
 	RABBITMQ_SUPERVISOR_LOGGER_PATH = "/tmp/RbtSuperviosr.log"
 
 	// log level
-	RABBITMQ_LOG_LEVEL = util.DEBUG_LEVEL
+	RABBITMQ_LOG_LEVEL = util.INFO_LEVEL
 
 	// supervisor 中的配置连接文件路径
 	ANE_CONFIG_PATH = "/opt/mq.ini"

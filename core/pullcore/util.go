@@ -14,7 +14,7 @@ import (
 	"github.com/zuston/AtcalMq/core"
 )
 
-const ERROR_INSERT_PATH = "/opt/aneError"
+const ERROR_INSERT_PATH = "/opt/aneError/"
 
 var errorLogger *util.LLogger
 
