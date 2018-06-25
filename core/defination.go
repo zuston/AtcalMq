@@ -1,6 +1,6 @@
 package core
 
-
+import "fmt"
 
 const (
 	QUEUE_DATA_CENTERLOAD = "ane_its_ai_data_centerLoad_queue"
@@ -111,13 +111,40 @@ const(
 	MYSQL_TAG
 )
 
+// 自定义的多元关系队列系统 前缀，区别于恢复队列
+const SAVING_RELATION_PREFIX = "dual"
+// 混合指定关系
 var MultiRelationSavingTableNames = []string{
-	QUEUE_BIZ_EWB,
-	QUEUE_BASIC_ROUTE,
-	QUEUE_DATA_CENTERSORT,
-	QUEUE_BIZ_EWBSLIST,
-	QUEUE_DATA_SITELOAD,
-	QUEUE_DATA_CENTERUNLOAD,
-	QUEUE_DATA_CENTERPALLET,
-	QUEUE_DATA_CENTERLOAD,
+	fmt.Sprintf("%s_%s",SAVING_RELATION_PREFIX,QUEUE_BIZ_EWB),
+	fmt.Sprintf("%s_%s",SAVING_RELATION_PREFIX,QUEUE_BASIC_ROUTE),
+	fmt.Sprintf("%s_%s",SAVING_RELATION_PREFIX,QUEUE_DATA_CENTERSORT),
+	fmt.Sprintf("%s_%s",SAVING_RELATION_PREFIX,QUEUE_BIZ_EWBSLIST),
+	fmt.Sprintf("%s_%s",SAVING_RELATION_PREFIX,QUEUE_DATA_SITELOAD),
+	fmt.Sprintf("%s_%s",SAVING_RELATION_PREFIX,QUEUE_DATA_CENTERUNLOAD),
+	fmt.Sprintf("%s_%s",SAVING_RELATION_PREFIX,QUEUE_DATA_CENTERPALLET),
+	fmt.Sprintf("%s_%s",SAVING_RELATION_PREFIX,QUEUE_DATA_CENTERLOAD),
+}
+
+var MultiRealtionColumnFamilyMapper = map[string]string{
+	fmt.Sprintf("%s_%s",SAVING_RELATION_PREFIX,QUEUE_BIZ_EWB) : "A",
+	fmt.Sprintf("%s_%s",SAVING_RELATION_PREFIX,QUEUE_BASIC_ROUTE) : "B",
+	fmt.Sprintf("%s_%s",SAVING_RELATION_PREFIX,QUEUE_DATA_CENTERSORT) : "C",
+	fmt.Sprintf("%s_%s",SAVING_RELATION_PREFIX,QUEUE_BIZ_EWBSLIST) : "D",
+	fmt.Sprintf("%s_%s",SAVING_RELATION_PREFIX,QUEUE_DATA_SITELOAD) : "E",
+	fmt.Sprintf("%s_%s",SAVING_RELATION_PREFIX,QUEUE_DATA_CENTERUNLOAD) : "F",
+	fmt.Sprintf("%s_%s",SAVING_RELATION_PREFIX,QUEUE_DATA_CENTERPALLET) : "G",
+	fmt.Sprintf("%s_%s",SAVING_RELATION_PREFIX,QUEUE_DATA_CENTERLOAD) : "H",
+}
+
+
+const (
+	MULTI_RELATION_A = iota
+	MULTI_RELATION_B
+	MULTI_RELATION_C
+)
+
+var MultiRelationHbaseName = map[int]string{
+	MULTI_RELATION_A : "New_Site_Ewb",
+	MULTI_RELATION_B : "New_Site_Time_Ewb",
+	MULTI_RELATION_C : "New_Site_Time_Car",
 }

@@ -11,12 +11,18 @@ import (
 	"fmt"
 	"time"
 	"github.com/zuston/AtcalMq/rabbitmq"
+	"github.com/streadway/amqp"
+	"github.com/zuston/AtcalMq/core"
 )
+
+/**
+将日志文件打入mq中程序
+ */
 
 // curl -u ane:ane1106 http://202.120.117.179:15672/api/queues/its-pds
 
-//const BACKUPER_DEFAULT_PATH = "/opt/aneBackup"
-const BACKUPER_DEFAULT_PATH = "/temp/"
+const BACKUPER_DEFAULT_PATH = "/opt/aneBackup/"
+//const BACKUPER_DEFAULT_PATH = "/temp/"
 
 // 备份通道
 var infoChannel chan backuperStruct
@@ -35,16 +41,21 @@ var (
 	filterSuffix = flag.String("filter","","choose the filter backuper path suffix")
 	// mq 配置文件位置
 	mqConfig = flag.String("config","/opt/mq.ini","enter the rabbitmq backuper config file file position")
+	// 推送至二元关系存储模型 还是 备份恢复队列
+	savingTag = flag.Bool("dual",true,"set the dual relation saving model")
 )
 
 var barrier sync.WaitGroup
 
 var backupPusher *rabbitmq.ProducerFactory
 
+var done chan bool
+
 
 func init(){
 	flag.Parse()
 	infoChannel = make(chan backuperStruct,1000)
+	done = make(chan bool,1)
 
 	mqConfigs, err := util.NewConfigReader(*mqConfig,MQ_SECTION)
 	backupPusher, err = rabbitmq.NewProducerFactory(mqConfigs[MQ_URL],mqConfigs[MQ_EXCHANGE],mqConfigs[MQ_TYPE],false)
@@ -52,6 +63,8 @@ func init(){
 }
 
 func main(){
+	//pullMQ()
+	//return
 	//pushMQ()
 	//return
 	//testInc()
@@ -77,6 +90,9 @@ func goroutineReader(files []string) {
 	for _, filePath := range files{
 		go func() {
 			queueName,YMD := parse(filePath)
+			if *savingTag {
+				queueName = fmt.Sprintf("%s_%s",core.SAVING_RELATION_PREFIX,queueName)
+			}
 			startTime := time.Now()
 			_ = YMD
 			file, err := os.Open(filePath)
@@ -97,7 +113,9 @@ func goroutineReader(files []string) {
 				infoTag := line[0:22]
 				info := line[22:]
 				fmt.Println(infoTag,info)
+
 				infoChannel <- backuperStruct{
+					// todo 是二元关系存储还是备份的。更改queue的前缀
 					queueName:queueName,
 					info:info,
 				}
@@ -169,6 +187,22 @@ func pushMQ(){
 	for i:=1;i<1000;i++{
 		pf.Publish("test_queue","hello world")
 	}
+	select {
+
+	}
+}
+
+func pullMQ(){
+	consumer, _ := rabbitmq.NewConsumerFactory("amqp://ane:ane1106@202.120.117.179:5672/its-pds","test_exchange","direct",false)
+	consumer.Register("test_queue", func(qn string, msgChan <- chan amqp.Delivery) {
+		count := 0
+		for msg := range msgChan{
+			msg.Ack(true)
+			log.Println(string(msg.Body))
+			count++
+		}
+		log.Println(count)
+	})
 	select {
 
 	}

@@ -11,28 +11,22 @@ import (
 
 var relationMappers map[int][]string
 
-const (
-	RELATION_A = iota
-	RELATION_B
-	RELATION_C
-)
-
 const TIME_FORMAT = "2006-01-02 15:04:05"
 
 func init(){
 	relationMappers = map[int][]string{
-		RELATION_A : []string{
+		core.MULTI_RELATION_A : []string{
 			core.QUEUE_BIZ_EWB,
 			core.QUEUE_BASIC_ROUTE,
 		},
-		RELATION_B : []string{
+		core.MULTI_RELATION_B : []string{
 			core.QUEUE_DATA_SITELOAD,
 			core.QUEUE_DATA_CENTERUNLOAD,
 			core.QUEUE_DATA_CENTERPALLET,
 			core.QUEUE_DATA_CENTERSORT,
 			core.QUEUE_DATA_CENTERLOAD,
 		},
-		RELATION_C : []string{
+		core.MULTI_RELATION_C : []string{
 			core.QUEUE_BIZ_EWBSLIST,
 			core.QUEUE_DATA_SITELOAD,
 			core.QUEUE_DATA_CENTERUNLOAD,
@@ -53,7 +47,7 @@ func MultiSavingModel(qn string, info map[string]string) func(){
 
 		if table_A {
 			// hbase table name
-			table_A_NAME := ""
+			table_A_NAME := core.MultiRelationHbaseName[core.MULTI_RELATION_A]
 
 			// rowkey 由 startSiteID 和 ewbNo 组成
 			startSiteId := info["startsiteid"]
@@ -63,7 +57,7 @@ func MultiSavingModel(qn string, info map[string]string) func(){
 			info["mqDate"] = time.Now().Format(TIME_FORMAT)
 
 			// 存储形式
-			columnFamily := qn
+			columnFamily := core.MultiRealtionColumnFamilyMapper[qn]
 			qualifierMapper := map[string]map[string][]byte{
 				columnFamily : V2Byte(info),
 			}
@@ -73,14 +67,14 @@ func MultiSavingModel(qn string, info map[string]string) func(){
 		}
 
 		if table_B {
-			table_B_NAME := ""
+			table_B_NAME := core.MultiRelationHbaseName[core.MULTI_RELATION_B]
 			siteId := info["siteid"]
 			ewbNo := info["ewbno"]
 
 			rowkey := fmt.Sprintf("%s#%s#%s",siteId,time.Now().Format(TIME_FORMAT),ewbNo)
 
 			info["mqDate"] = time.Now().Format(TIME_FORMAT)
-			cf := qn
+			cf := core.MultiRealtionColumnFamilyMapper[qn]
 			qmapper := map[string]map[string][]byte{
 				cf : V2Byte(info),
 			}
@@ -89,14 +83,14 @@ func MultiSavingModel(qn string, info map[string]string) func(){
 		}
 
 		if table_C {
-			table_C_NAME := ""
+			table_C_NAME := core.MultiRelationHbaseName[core.MULTI_RELATION_C]
 			siteId := info["siteid"]
 			ewbNo := info["ewbno"]
 
 			rowkey := fmt.Sprintf("%s#%s#%s",siteId,time.Now().Format(TIME_FORMAT),ewbNo)
 
 			info["mqDate"] = time.Now().Format(TIME_FORMAT)
-			cf := qn
+			cf := core.MultiRealtionColumnFamilyMapper[qn]
 			qmapper := map[string]map[string][]byte{
 				cf : V2Byte(info),
 			}
@@ -110,7 +104,7 @@ func saveAction(tableName string, rowkey string, qualifierMapper map[string]map[
 	putReq, _ := hrpc.NewPutStr(context.Background(),tableName,rowkey,qualifierMapper)
 	_, err := singleConn.Client.Put(putReq)
 	if !util.CheckErr(err) {
-
+		
 	}
 }
 
@@ -120,15 +114,15 @@ func saveAction(tableName string, rowkey string, qualifierMapper map[string]map[
 func relationMatch(queueName string) (bool, bool, bool) {
 	a, b, c := false,false,false
 	for key, values := range relationMappers{
-		if key==RELATION_A && contains(values,queueName) {
+		if key==core.MULTI_RELATION_A && contains(values,queueName) {
 			a = true
 		}
 
-		if key==RELATION_B && contains(values,queueName) {
+		if key==core.MULTI_RELATION_B && contains(values,queueName) {
 			b = true
 		}
 
-		if key==RELATION_C && contains(values,queueName) {
+		if key==core.MULTI_RELATION_C && contains(values,queueName) {
 			c = true
 		}
 	}
