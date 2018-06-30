@@ -27,6 +27,8 @@ const BACKUPER_DEFAULT_PATH = "/opt/aneBackup/"
 // 备份通道
 var infoChannel chan backuperStruct
 
+const TIME_FORMAT = "2006-01-02"
+
 const (
 	MQ_SECTION = "amqp"
 	MQ_URL = "mq_uri"
@@ -51,15 +53,34 @@ var backupPusher *rabbitmq.ProducerFactory
 
 var done chan bool
 
+var haveDone chan bool
+
 
 func init(){
 	flag.Parse()
 	infoChannel = make(chan backuperStruct,1000)
 	done = make(chan bool,1)
+	haveDone = make(chan bool,1)
+
 
 	mqConfigs, err := util.NewConfigReader(*mqConfig,MQ_SECTION)
 	backupPusher, err = rabbitmq.NewProducerFactory(mqConfigs[MQ_URL],mqConfigs[MQ_EXCHANGE],mqConfigs[MQ_TYPE],false)
 	util.CheckPanic(err)
+
+	if *savingTag  && len(*filterSuffix)==0 {
+		*filterSuffix = generateFilterQueue()
+	}
+
+}
+
+func generateFilterQueue() string {
+	ymd := time.Now().AddDate(0,0,-1).Format(TIME_FORMAT)
+	var newlist []string
+	for _, value := range core.MultiRelationSavingTableNames{
+		index := strings.Index(value,"_")
+		newlist = append(newlist,fmt.Sprintf("%s.%s.%s",value[index+1:],"log",ymd))
+	}
+	return strings.Join(newlist,",")
 }
 
 func main(){
@@ -70,15 +91,25 @@ func main(){
 	//testInc()
 	//
 	//return
-
+	outputNotify()
 
 	filterFiles := filter(*backuperPath,strings.Split(*filterSuffix,","))
 	log.Printf("current filter list is : [%s]",filterFiles)
 
 	go channelHandler()
 	goroutineReader(filterFiles)
-	select {
+	<- haveDone
+	log.Println("have finish reading and pushing the data!")
+	// 为了防止 rpc 请求过多，导致很多信息丢失
+	time.Sleep(time.Minute*3)
+}
 
+// 此队列可以用于备份恢复 或者是 多元关系模型存储
+func outputNotify() {
+	if *savingTag {
+		log.Println("current backup mode : [dual relation model saving]")
+	}else {
+		log.Println("current backup mode : [recover the backup data....]")
 	}
 }
 
@@ -110,9 +141,9 @@ func goroutineReader(files []string) {
 				if err!=nil {
 					break
 				}
-				infoTag := line[0:22]
+				//infoTag := line[0:22]
 				info := line[22:]
-				fmt.Println(infoTag,info)
+				//fmt.Println(infoTag,info)
 
 				infoChannel <- backuperStruct{
 					// todo 是二元关系存储还是备份的。更改queue的前缀
@@ -126,15 +157,27 @@ func goroutineReader(files []string) {
 	}
 	log.Println("waiting reading the files")
 	barrier.Wait()
-
+	done <- false
 }
 
 func channelHandler(){
 	log.Println("start consuming the data....")
-	for infoStruct := range infoChannel{
-		queueName := infoStruct.queueName
-		info := infoStruct.info
-		backupPusher.Publish(queueName,info)
+	//for infoStruct := range infoChannel{
+	//	queueName := infoStruct.queueName
+	//	info := infoStruct.info
+	//	backupPusher.Publish(queueName,info)
+	//}
+
+	for {
+		select {
+		case infoStruct := <- infoChannel :
+			queueName := infoStruct.queueName
+			info := infoStruct.info
+			backupPusher.Publish(queueName,info)
+		case <- done :
+			haveDone <- true
+			return
+		}
 	}
 }
 
@@ -142,6 +185,8 @@ func channelHandler(){
 功能性函数
  */
 func parse(filePath string) (string, string) {
+	removePrefixPathIndex := strings.LastIndex(filePath,"/")
+	filePath = filePath[removePrefixPathIndex+1:]
 	arrs := strings.Split(filePath,".")
 	return arrs[0],arrs[2]
 }

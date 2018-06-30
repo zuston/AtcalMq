@@ -7,6 +7,8 @@ import (
 	"github.com/tsuna/gohbase/hrpc"
 	"context"
 	"github.com/zuston/AtcalMq/util"
+	"log"
+	"strings"
 )
 
 var relationMappers map[int][]string
@@ -61,7 +63,6 @@ func MultiSavingModel(qn string, info map[string]string) func(){
 			qualifierMapper := map[string]map[string][]byte{
 				columnFamily : V2Byte(info),
 			}
-
 			// rpc save action
 			saveAction(table_A_NAME,rowkey,qualifierMapper)
 		}
@@ -104,7 +105,7 @@ func saveAction(tableName string, rowkey string, qualifierMapper map[string]map[
 	putReq, _ := hrpc.NewPutStr(context.Background(),tableName,rowkey,qualifierMapper)
 	_, err := singleConn.Client.Put(putReq)
 	if !util.CheckErr(err) {
-		
+		log.Println("失败插入....",err)
 	}
 }
 
@@ -113,6 +114,7 @@ func saveAction(tableName string, rowkey string, qualifierMapper map[string]map[
  */
 func relationMatch(queueName string) (bool, bool, bool) {
 	a, b, c := false,false,false
+	queueName = convertQueueName(queueName)
 	for key, values := range relationMappers{
 		if key==core.MULTI_RELATION_A && contains(values,queueName) {
 			a = true
@@ -136,4 +138,9 @@ func contains(list []string, qn string) bool{
 		}
 	}
 	return false
+}
+
+func convertQueueName(qn string) string{
+	index := strings.Index(qn,"_")
+	return qn[index+1:]
 }

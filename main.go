@@ -83,7 +83,11 @@ func init(){
 
 func main(){
 
-	cf, err := rabbitmq.NewConsumerFactory(mq_uri,exchange,exchange_type,true)
+	isSupervisor := true
+	if *backuperTag {
+		isSupervisor = false
+	}
+	cf, err := rabbitmq.NewConsumerFactory(mq_uri,exchange,exchange_type,isSupervisor)
 
 	if err!=nil {
 		panic("fail to connect to the message queue of rabbitmq")
@@ -98,6 +102,7 @@ func main(){
 
 	// 备份队列处理
 	if *backuperTag{
+		lloger.Info("正在处理自有队列消息.......")
 		cf.RegisterAll(core.MultiRelationSavingTableNames,pullcore.MultiSavingHandler)
 	}
 

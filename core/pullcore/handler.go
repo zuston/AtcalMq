@@ -149,18 +149,16 @@ func TestHandler(queue string, msgChan <-chan amqp.Delivery){
  func MultiSavingHandler(qn string, msgChan <- chan amqp.Delivery){
 	 pool := grpool.NewPool(POOL_WORK_NUMBER, POOL_QUEUE_LEN)
 	 defer pool.Release()
-	 hlogger.Info("processing the multi saving model handler...")
+	 hlogger.Info("processing the dual saving model handler...")
 
 	 for msg := range msgChan{
-	 	msg.Ack(false)
+	 	msg.Ack(true)
 	 	infos := ModelGen(msg.Body)
 	 	for _, info := range infos{
-	 		rabbitmq.StatisticsChan <- qn
 	 		pool.JobQueue <- MultiSavingModel(qn,info)
 		}
 	 }
  }
-
 
 
 

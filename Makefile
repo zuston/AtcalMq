@@ -11,7 +11,7 @@ CONSOLE_BINARY_NAME=./target/console
 BACKUP_BINARY_NAME=./target/backup
 
 
-all: pull push console
+all: pull push console backup
 pull:
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) -o $(PULL_BINARY_NAME) -v main.go
 
@@ -22,4 +22,4 @@ console:
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) -o $(CONSOLE_BINARY_NAME) -v newconsole.go
 
 backup:
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) -o $(BACKUP_BINARY_NAME) -v backup.go
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) -o $(BACKUP_BINARY_NAME) -v backuper.go
