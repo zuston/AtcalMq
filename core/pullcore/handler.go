@@ -86,8 +86,8 @@ func init(){
 最基础的数据存储函数
  */
 func BasicHandler(queue string, msgChan <-chan amqp.Delivery){
-	logPath := fmt.Sprintf("/tmp/backup/%s.backup",queue)
-	oldBackuper,_ := util.NewLogger(util.INFO_LEVEL,logPath)
+	//logPath := fmt.Sprintf("/tmp/backup/%s.backup",queue)
+	//oldBackuper,_ := util.NewLogger(util.INFO_LEVEL,logPath)
 	newBackuper := instanceBackerUper(queue)
 
 	pool := grpool.NewPool(100, 1000)
@@ -100,7 +100,7 @@ func BasicHandler(queue string, msgChan <-chan amqp.Delivery){
 	for msg := range msgChan{
 		msg.Ack(true)
 
-		oldBackuper.Info(string(msg.Body))
+		//oldBackuper.Info(string(msg.Body))
 		newBackuper.Println(string(msg.Body))
 		list := ModelGen(msg.Body)
 		for _,v := range list{
