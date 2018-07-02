@@ -218,7 +218,7 @@ func genCfColumnKeyName(mapper map[string][]byte, queueName string) string {
 	// 以多版本来记录
 
 	if strings.ToLower(correspondingColumnName) == "scantime" && string(mapper[strings.ToLower(correspondingColumnName)])=="" {
-		util.WechatNotify(fmt.Sprintf("[%s] lack the [%s]'s value",queueName,correspondingColumnName))
+		util.BarkNotify(fmt.Sprintf("[%s] lack the [%s]'s value",queueName,correspondingColumnName))
 	}
 	if !ok || correspondingColumnName=="uid" || string(mapper[strings.ToLower(correspondingColumnName)])==""{
 		// 设置接收的当前时间

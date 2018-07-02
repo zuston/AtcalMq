@@ -106,7 +106,7 @@ func pusher(producerFactory *rabbitmq.ProducerFactory, translationT map[string]m
 		for _, info := range pushJsonList{
 			producerFactory.Publish(queueName,info)
 		}
-		util.WechatNotify(notifyInfo)
+		util.BarkNotify(notifyInfo)
 	}
 }
 

@@ -153,7 +153,7 @@ func statisticNotify() {
 	for key,value := range statisticsContainer{
 		pushList = append(pushList, key+" : "+fmt.Sprint(value))
 	}
-	util.WechatNotify(strings.Join(pushList,"\n"))
+	util.BarkNotify(strings.Join(pushList,"\n"))
 }
 
 func getPullQueueNumber() int{
@@ -200,7 +200,7 @@ func Supervisor(){
 		if err!=nil {
 			errorFormat := fmt.Sprintf("supervisor timely got error : [%s]",err)
 			zlloger.Error(errorFormat)
-			util.WechatNotify(errorFormat)
+			util.BarkNotify(errorFormat)
 			continue
 		}
 		countList := gjson.Get(jsonResp,"#.messages")

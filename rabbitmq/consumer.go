@@ -137,7 +137,7 @@ func (cf *ConsumerFactory) Handle() {
 			}
 			// 重启任务
 			cf.zloger.Info("[%s] restart the channel",stopQueueName)
-			util.WechatNotify(fmt.Sprintf("[%s] restart the channel",stopQueueName))
+			util.BarkNotify(fmt.Sprintf("[%s] restart the channel",stopQueueName))
 			cf.registerChan <- consumerReg
 
 		}
@@ -153,7 +153,7 @@ func (cf *ConsumerFactory) Handle() {
 		amqpConn, err := amqp.Dial(cf.amqpUrl)
 		if err!=nil {
 			cf.zloger.Error("[%s] dial amqp Connection error : %s",queueName,err)
-			util.WechatNotify(fmt.Sprintf("[%s] dial amqp Connection error : %s",queueName,err))
+			util.BarkNotify(fmt.Sprintf("[%s] dial amqp Connection error : %s",queueName,err))
 			continue
 		}
 
