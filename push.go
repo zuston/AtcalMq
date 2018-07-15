@@ -37,7 +37,7 @@ var(
 func init(){
 	flag.Parse()
 
-	logger,err = util.NewLogger(util.DEBUG_LEVEL,PUSH_LOG_PATH)
+	logger,err = util.NewLogger(util.INFO_LEVEL,PUSH_LOG_PATH)
 	util.CheckPanic(err)
 	logger.SetDebug()
 }
@@ -101,12 +101,16 @@ func pusher(producerFactory *rabbitmq.ProducerFactory, translationT map[string]m
 		dbName, queueName := parseComponentKey(componentKey)
 		pushJsonList := pushcore.Get(core.MONGO_TAG,dbName,convertMapper,verifytime)
 		notifyInfo := fmt.Sprintf("[%s] - [%s] 当次推送消息数量：%d",queueName,dbName,len(pushJsonList))
-		logger.Info(notifyInfo)
+		logger.Debug(notifyInfo)
 		//pushLine := "["+strings.Join(pushJsonList,",")+"]"
 		for _, info := range pushJsonList{
 			producerFactory.Publish(queueName,info)
 		}
-		util.BarkNotify(notifyInfo)
+		// 增加 wechat 提示和 删除数量为 0 的提示
+		if len(pushJsonList)>0 {
+			util.BarkNotify(notifyInfo)
+			util.WechatNotify(notifyInfo)
+		}
 	}
 }
 
