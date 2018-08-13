@@ -13,7 +13,10 @@ import (
 const HANDLER_LOG_PATH  = "/tmp/AneHandler.log"
 const HBASE_INI_PATH = "/opt/hbase.ini"
 // 数据备份路径点
-const BACKUPER_PATH = "/opt/aneBackup/"
+//const BACKUPER_PATH = "/opt/aneBackup/"
+
+// 更改数据备份点
+const BACKUPER_PATH = "/extdata/aneBackup/"
 
 const (
 	POOL_WORK_NUMBER = 100
@@ -90,7 +93,7 @@ func BasicHandler(queue string, msgChan <-chan amqp.Delivery){
 	//oldBackuper,_ := util.NewLogger(util.INFO_LEVEL,logPath)
 	newBackuper := instanceBackerUper(queue)
 
-	pool := grpool.NewPool(100, 1000)
+	pool := grpool.NewPool(1000, 100000)
 	defer pool.Release()
 
 	hlogger.Info("[%s] enter the handler",queue)

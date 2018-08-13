@@ -94,7 +94,7 @@ func main(){
 	}
 
 	if !settingConsumeQueueTag && !*backuperTag {
-		cf.RegisterAll(core.BasicInfoTableNames,pullcore.BasicHandler)
+		cf.RegisterAll(core.MixedBasicInfoTableNames,pullcore.BasicHandler)
 	}else if !*backuperTag {
 		// 调试使用
 		cf.Register(*queueName,pullcore.BasicHandler)

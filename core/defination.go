@@ -148,3 +148,15 @@ var MultiRelationHbaseName = map[int]string{
 	MULTI_RELATION_B : "New_Site_Time_Ewb",
 	MULTI_RELATION_C : "New_Site_Time_Car",
 }
+
+// 历史记录表
+var HistoryBasicInfoTableNames []string
+// 历史加实时表
+var MixedBasicInfoTableNames []string
+
+func init() {
+	for _, v := range BasicInfoTableNames {
+		HistoryBasicInfoTableNames = append(HistoryBasicInfoTableNames, fmt.Sprintf("history_%s",v))
+		MixedBasicInfoTableNames = append(MixedBasicInfoTableNames, fmt.Sprintf("history_%s",v), v)
+	}
+}

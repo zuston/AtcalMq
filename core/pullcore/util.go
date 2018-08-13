@@ -73,7 +73,7 @@ const(
 )
 
 // 生成存储model
-func SaveModelGen(object map[string]string, queue string, hconnName string) func(){
+func SaveModelGen(object map[string]string, queueName string, hconnName string) func(){
 
 	hconn := HconnContainersMapper[hconnName]
 	currentHbaseConnection_Status := hconn.Name
@@ -106,6 +106,16 @@ func SaveModelGen(object map[string]string, queue string, hconnName string) func
 		NEXT_SITE_ID : "Link_Site",
 	}
 
+	// history linktableName
+	historyLinkTnList := map[string]string{
+		EWB_NO:"History_Link_Ewb",
+		SITE_ID:"History_Link_Site",
+		VEHICLE_NO:"History_Link_Vehicle",
+		CAR_NO:"History_Link_Vehicle",
+		OPERATOR_CODE:"History_Link_Operator",
+		NEXT_SITE_ID : "History_Link_Site",
+	}
+
 	// 基础信息存储 model map,似乎是多余的
 	//basicInfoMapper := ModelMapperGen(object)
 	basicInfoMapper := V2Byte(object)
@@ -115,7 +125,7 @@ func SaveModelGen(object map[string]string, queue string, hconnName string) func
 	// 基础信息--columnFamily
 	basicInfoCf := "basic"
 	// 基础信息--tableName
-	basicInfoTn := queue
+	basicInfoTn := queueName
 	// 基础信息--cf 和 model
 	basicInfoCfMapper := map[string]map[string][]byte{basicInfoCf:basicInfoMapper}
 	// 基础信息--uid----rowkey
@@ -124,18 +134,25 @@ func SaveModelGen(object map[string]string, queue string, hconnName string) func
 	//CacheMapper[string(basicInfoMapper["hewbno"])] = randomNumber
 
 	return func() {
-		hlogger.Debug("[%s] metaTable rowkey : [%s]",queue,basicInfoUid)
+		hlogger.Debug("[%s] metaTable rowkey : [%s]",queueName,basicInfoUid)
 		// 基础信息--putrequest
 		biPutRequest, err := hrpc.NewPutStr(context.Background(),basicInfoTn,basicInfoUid,basicInfoCfMapper)
 		if err!=nil {
-			hlogger.Error("[%s] bi build [%s] hrpc error : %s",queue,currentHbaseConnection_Status,err)
+			hlogger.Error("[%s] bi build [%s] hrpc error : %s",queueName,currentHbaseConnection_Status,err)
 			return
 		}
 		_, err = singleConn.Client.Put(biPutRequest)
 		if err!=nil {
-			hlogger.Error("[%s] bi hbase [%s] put error : %s",queue,currentHbaseConnection_Status,err)
-			errorBackup(queue,"basic",string(convertInfo))
+			hlogger.Error("[%s] bi hbase [%s] put error : %s",queueName,currentHbaseConnection_Status,err)
+			errorBackup(queueName,"basic",string(convertInfo))
 			return
+		}
+
+		var saveLinkMapper map[string]string
+		if isHistoryData(queueName) {
+			saveLinkMapper = historyLinkTnList
+		}else {
+			saveLinkMapper = linkTnList
 		}
 
 		// 关联信息
@@ -152,31 +169,35 @@ func SaveModelGen(object map[string]string, queue string, hconnName string) func
 				for _,lrk := range linkrowKeys{
 					// 去除例如 21850.0000 后缀的rowkey,变成21850
 					lrk := FixRowKey(lrk)
-					hlogger.Debug("[%s] LinkTable rowkey : [%s]",linkTnList[v],lrk)
-					saveKey := fmt.Sprintf("%s_%d",genCfColumnKeyName(basicInfoMapper,queue),randomNumber)
+					hlogger.Debug("[%s] LinkTable rowkey : [%s]",saveLinkMapper[v],lrk)
+					saveKey := fmt.Sprintf("%s_%d",genCfColumnKeyName(basicInfoMapper,queueName),randomNumber)
 					hlogger.Debug("[%s] saveKey",saveKey)
 					// linkInfoMapper
 					liMapper := map[string][]byte{saveKey:[]byte(basicInfoUid)}
-					linkCfName := queue
+					linkCfName := queueName
 					if v==NEXT_SITE_ID {
 						linkCfName = fmt.Sprintf("%s_%s","nextSite",linkCfName)
 					}
 					liCfMapper := map[string]map[string][]byte{linkCfName:liMapper}
-					linkPutReq, err := hrpc.NewPutStr(context.Background(),linkTnList[v],lrk,liCfMapper)
+					linkPutReq, err := hrpc.NewPutStr(context.Background(),saveLinkMapper[v],lrk,liCfMapper)
 					if err!=nil {
-						hlogger.Error("[%s] link [%s] build [%s] hrpc error : %s",queue,v,currentHbaseConnection_Status,err)
+						hlogger.Error("[%s] link [%s] build [%s] hrpc error : %s",queueName,v,currentHbaseConnection_Status,err)
 						continue
 					}
 					_, err = singleConn.Client.Put(linkPutReq)
 					if err!=nil {
-						hlogger.Error("[%s] link [%s] hbase [%s] put error : %s",queue,v,currentHbaseConnection_Status,err)
-						errorBackup(queue,v,string(convertInfo))
+						hlogger.Error("[%s] link [%s] hbase [%s] put error : %s",queueName,v,currentHbaseConnection_Status,err)
+						errorBackup(queueName,v,string(convertInfo))
 						continue
 					}
 				}
 			}
 		}
 	}
+}
+
+func isHistoryData(queueName string) bool {
+	return strings.Contains(strings.ToLower(queueName), "history");
 }
 
 func errorBackup(queueName string,savePeriod string,info string){
