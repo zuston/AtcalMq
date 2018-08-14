@@ -58,3 +58,6 @@ func main(){
   pf.Publish("ane_push","hello world")
 }
 ```
+
+# Console UI
+![image](https://raw.githubusercontent.com/zuston/AtcalMq/master/snapshot/console.jpg)
