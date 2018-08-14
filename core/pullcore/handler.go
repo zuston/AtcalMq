@@ -93,7 +93,7 @@ func BasicHandler(queue string, msgChan <-chan amqp.Delivery){
 	//oldBackuper,_ := util.NewLogger(util.INFO_LEVEL,logPath)
 	newBackuper := instanceBackerUper(queue)
 
-	pool := grpool.NewPool(100, 1000)
+	pool := grpool.NewPool(1000, 100000)
 	defer pool.Release()
 
 	hlogger.Info("[%s] enter the handler",queue)
