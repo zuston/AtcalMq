@@ -7,7 +7,7 @@ import (
 )
 
 const(
-	LOGGER_PATH = "/tmp/AnePushHandler.log"
+	LOGGER_PATH = "/extdata/log/AnePushHandler.log"
 )
 
 var(

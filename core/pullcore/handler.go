@@ -10,7 +10,7 @@ import (
 	"runtime"
 )
 
-const HANDLER_LOG_PATH  = "/tmp/AneHandler.log"
+const HANDLER_LOG_PATH  = "/extdata/log/AneHandler.log"
 const HBASE_INI_PATH = "/opt/hbase.ini"
 // 数据备份路径点
 //const BACKUPER_PATH = "/opt/aneBackup/"

@@ -25,7 +25,7 @@ const(
 	MODEL_SUFFIX = "model"
 )
 
-const PUSH_LOG_PATH  = "/tmp/AnePush.log"
+const PUSH_LOG_PATH  = "/extdata/log/AnePush.log"
 
 var(
 	err error

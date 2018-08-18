@@ -1,18 +1,24 @@
 package rabbitmq
 
-import "github.com/zuston/AtcalMq/util"
+import (
+	"github.com/zuston/AtcalMq/util"
+	"fmt"
+)
 
 // 将一些 rabbitmq 下的log路径配置信息定义在此
 
-const (
+var (
+	// rabbitmq 日志路径
+	RABBIT_MQ_LOG_PATH_PREFIX = "/extdata/log"
+
 	// consumer 日志路径名
-	RABBITMQ_CONSUMER_LOGGER_PATH = "/tmp/RbtConsumer.log"
+	RABBITMQ_CONSUMER_LOGGER_PATH = fmt.Sprintf("%s/RbtConsumer.log",RABBIT_MQ_LOG_PATH_PREFIX)
 
 	// producer
-	RABBITMQ_PRODUCER_LOGGER_PATH = "/tmp/RbtProducer.log"
+	RABBITMQ_PRODUCER_LOGGER_PATH = fmt.Sprintf("%s/RbtProducer.log",RABBIT_MQ_LOG_PATH_PREFIX)
 
 	// supervisor
-	RABBITMQ_SUPERVISOR_LOGGER_PATH = "/tmp/RbtSuperviosr.log"
+	RABBITMQ_SUPERVISOR_LOGGER_PATH = fmt.Sprintf("%s/RbtSuperviosr.log",RABBIT_MQ_LOG_PATH_PREFIX)
 
 	// log level
 	RABBITMQ_LOG_LEVEL = util.INFO_LEVEL

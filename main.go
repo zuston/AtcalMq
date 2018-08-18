@@ -21,7 +21,7 @@ const (
 	EXCHANGE_TYPE = "exchange_type"
 )
 
-const MAIN_LOG_PATH  = "/tmp/AneMain.log"
+const MAIN_LOG_PATH  = "/extdata/log/AneMain.log"
 
 var lloger *util.Logger
 
