@@ -20,7 +20,7 @@ var (
 	currentInfos string
 )
 
-const CONSOLE_LOG_PATH  = "/tmp/AneConsole.log"
+const CONSOLE_LOG_PATH  = "/extdata/log/AneConsole.log"
 
 
 func init(){
